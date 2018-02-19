@@ -10,6 +10,10 @@
 #import "cmp.h"
 #import "PINMessagePackError.h"
 
+#if __LP64__ || (TARGET_OS_EMBEDDED && !TARGET_OS_IPHONE) || TARGET_OS_WIN32 || NS_BUILD_32_LIKE_64
+  #define NS_INTEGER_IS_64
+#endif
+
 #define ACQUIRE_OBJECT(returnType) \
   if (!_currentObjValid) { \
     if (!cmp_read_object(&_cmpContext, &_currentObj)) { \
@@ -89,23 +93,23 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 - (BOOL)readBOOL:(out BOOL *)boolPtr
 {
   ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_bool(&_currentObj, boolPtr));
+  CONSUME_OBJECT(cmp_object_as_bool(&_currentObj, (bool *)boolPtr));
 }
 
 - (BOOL)readInteger:(out NSInteger *)intPtr
 {
   ACQUIRE_OBJECT(BOOL);
-#if __LP64__ || (TARGET_OS_EMBEDDED && !TARGET_OS_IPHONE) || TARGET_OS_WIN32 || NS_BUILD_32_LIKE_64
-  CONSUME_OBJECT(cmp_object_as_long(&_currentObj, intPtr));
+#ifdef NS_INTEGER_IS_64
+  return [self readInt64:(int64_t *)intPtr];
 #else
-  
+  CONSUME_OBJECT(cmp_object_as_int(&_currentObj, intPtr));
 #endif
 }
 
 - (BOOL)readUnsignedInteger:(out NSUInteger *)uintPtr
 {
-#if __LP64__ || (TARGET_OS_EMBEDDED && !TARGET_OS_IPHONE) || TARGET_OS_WIN32 || NS_BUILD_32_LIKE_64
-  return [self readUnsignedInt64:uintPtr];
+#ifdef NS_INTEGER_IS_64
+  return [self readUnsignedInt64:(uint64_t *)uintPtr];
 #else
   CONSUME_OBJECT(cmp_object_as_uint(&_currentObj, uintPtr));
 #endif
@@ -135,12 +139,10 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   CONSUME_OBJECT(cmp_object_as_double(&_currentObj, doublePtr));
 }
 
-- (BOOL)readStringBufferSize:(out uint32_t *)bufferSizePtr
+- (BOOL)readStringLength:(out uint32_t *)lengthPtr
 {
   ACQUIRE_OBJECT(BOOL);
-  BOOL result = cmp_object_as_str(&_currentObj, bufferSizePtr);
-  *bufferSizePtr += 1;
-  return result;
+  return cmp_object_as_str(&_currentObj, lengthPtr);
 }
 
 - (BOOL)readDataLength:(out uint32_t *)lengthPtr
@@ -151,11 +153,13 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 
 - (BOOL)readString:(char *)string bufferSize:(uint32_t)size
 {
+  ACQUIRE_OBJECT(BOOL);
   CONSUME_OBJECT(cmp_object_to_str(&_cmpContext, &_currentObj, string, size));
 }
 
 - (BOOL)readData:(void *)buffer length:(uint32_t)length
 {
+  ACQUIRE_OBJECT(BOOL);
   CONSUME_OBJECT(cmp_object_to_bin(&_cmpContext, &_currentObj, buffer, length));
 }
 

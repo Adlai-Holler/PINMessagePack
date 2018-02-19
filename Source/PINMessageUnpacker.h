@@ -14,14 +14,14 @@
  * Example: PINReadString(myUnpacker, strBuf);
  * gives you a variable `char strBuf[]` with the string in it.
  *
- * It also gives you a variable `uint32_t strBuf_size` that tells
- * you the size of the string (including NULL terminator).
+ * It also gives you a variable `uint32_t strBuf_len` that tells
+ * you the length of the string (without NULL terminator).
  */
 #define PINReadString(unpacker, varName) \
-  uint32_t varName ## _size;\
-  [unpacker readStringBufferSize:&varName ## _size]; \
-  char varName[varName ## _size]; \
-  [unpacker readString:varName bufferSize:varName ## _size];
+  uint32_t varName ## _len;\
+  [unpacker readStringLength:&varName ## _len]; \
+  char varName[varName ## _len + 1]; \
+  [unpacker readString:varName bufferSize:varName ## _len + 1];
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -36,6 +36,9 @@ __attribute__((objc_subclassing_restricted))
 
 /**
  * Initialize an unpacker using the given input stream.
+ *
+ * The input stream must not be opened. The input stream will be closed
+ * when the unpacker is deallocated.
  */
 - (instancetype)initWithInputStream:(NSInputStream *)inputStream NS_DESIGNATED_INITIALIZER;
 
@@ -44,45 +47,55 @@ __attribute__((objc_subclassing_restricted))
 
 #pragma mark - Reading
 
+/**
+ * The value type that's currently pointed to by the unpacker.
+ */
 @property (nonatomic, readonly) PINMessagePackValueType currentValueType;
 
+/**
+ * Read the current value as nil.
+ */
 - (BOOL)readNil;
 
 /**
- * Read the next BOOL value.
+ * Read the current value as BOOL.
  */
 - (BOOL)readBOOL:(out BOOL *)boolPtr;
 
 /**
- * Read the next signed integer value.
+ * Read the current value as NSInteger.
  */
 - (BOOL)readInteger:(out NSInteger *)intPtr;
 
-- (BOOL)readInt64:(out int64_t *)llPtr;
-
-- (BOOL)readUnsignedInt64:(out uint64_t *)ullPtr;
-
 /**
- * Read the next unsigned integer value.
+ * Read the current value as NSUInteger.
  */
 - (BOOL)readUnsignedInteger:(out NSUInteger *)uintPtr;
 
 /**
- * Read the next float value.
+ * Read the current value as signed 64-bit integer.
+ */
+- (BOOL)readInt64:(out int64_t *)llPtr;
+
+/**
+ * Read the current value as unsigned 64-bit integer.
+ */
+- (BOOL)readUnsignedInt64:(out uint64_t *)ullPtr;
+
+/**
+ * Read the current value as float.
  */
 - (BOOL)readFloat:(out float *)floatPtr;
 
 /**
- * Read the next double value.
+ * Read the current value as double.
  */
 - (BOOL)readDouble:(out double *)doublePtr;
 
 /**
- * Reads the size of the buffer needed to hold the next string.
- *
- * The size will be the string's length, plus 1 for the NULL terminator.
+ * Reads the length of the current string, without NULL terminator.
  */
-- (BOOL)readStringBufferSize:(out uint32_t *)bufferSizePtr;
+- (BOOL)readStringLength:(out uint32_t *)lengthPtr;
 
 /**
  * Reads the length of the binary data that's pointed to.
@@ -100,18 +113,22 @@ __attribute__((objc_subclassing_restricted))
 - (BOOL)readMapCount:(out uint32_t *)countPtr;
 
 /**
- * Read the next string into the given buffer.
+ * Read the string contents into the given buffer.
  *
- * NOTE: You must call -readStringBufferSize: before calling this.
+ * The buffer should be at least (length + 1).
+ *
+ * NOTE: You can call -readStringLength: before calling this
+ * to get the length.
  */
 - (BOOL)readString:(char *)string bufferSize:(uint32_t)size;
 
 /**
  * Read the next binary data into the given buffer.
  *
- * NOTE: You must call -readDataLength: before calling this.
+ * NOTE: You can call -readDataLength: before calling this
+ * to get an appropriate length.
  */
-- (BOOL)readData:(void *)buffer length:(uint32_t)size;
+- (BOOL)readData:(void *)buffer length:(uint32_t)length;
 
 #pragma mark - Unavailable
 

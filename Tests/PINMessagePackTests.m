@@ -199,16 +199,23 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 
 - (void)testARealResponse
 {
-  NSMutableString *base64String = [NSMutableString stringWithContentsOfFile:[[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil] encoding:NSUTF8StringEncoding error:NULL];
+  // Read the ref object from the plist in our bundle.
+  NSString *refPath = [[NSBundle bundleForClass:self.class] pathForResource:@"MessagePackRefObject" ofType:@"plist"];
+  id refObject = [NSKeyedUnarchiver unarchiveObjectWithFile:refPath];
+  XCTAssertNotNil(refObject);
+  
+  // Read the ref message pack data from the base64 file in our bundle.
+  NSString *base64String = [NSString stringWithContentsOfFile:[[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil] encoding:NSUTF8StringEncoding error:NULL];
   // Strip off trailing newline.
-  [base64String replaceCharactersInRange:NSMakeRange(base64String.length - 1, 1) withString:@""];
+  base64String = [base64String stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
   NSData *d = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
+  XCTAssertGreaterThan(d.length, 0);
   
   NSInputStream *s = [NSInputStream inputStreamWithData:d];
   PINMessageUnpacker *u = [[PINMessageUnpacker alloc] initWithInputStream:s];
   NSError *e;
   id obj = [u readObjectWithError:&e];
-  XCTAssertNotNil(obj);
-  XCTAssertNil(e);
+  XCTAssertEqualObjects(obj, refObject);
 }
+
 @end

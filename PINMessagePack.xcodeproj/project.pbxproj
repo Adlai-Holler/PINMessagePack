@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CC893C13203B538F00ED7FC1 /* MessagePackRefObject.plist in Resources */ = {isa = PBXBuildFile; fileRef = CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */; };
 		CCCDB2402039F1D20097C6A3 /* PINCollections.h in Headers */ = {isa = PBXBuildFile; fileRef = CCCDB23E2039F1D20097C6A3 /* PINCollections.h */; };
 		CCCDB2412039F1D20097C6A3 /* PINCollections.m in Sources */ = {isa = PBXBuildFile; fileRef = CCCDB23F2039F1D20097C6A3 /* PINCollections.m */; };
 		CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */ = {isa = PBXBuildFile; fileRef = CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */; };
@@ -36,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = MessagePackRefObject.plist; sourceTree = "<group>"; };
 		CCCDB23E2039F1D20097C6A3 /* PINCollections.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINCollections.h; sourceTree = "<group>"; };
 		CCCDB23F2039F1D20097C6A3 /* PINCollections.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINCollections.m; sourceTree = "<group>"; };
 		CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */ = {isa = PBXFileReference; lastKnownFileType = text; path = SampleDataBase64; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				CCFD19D4203771EA008F2EA1 /* PINMessagePackTests.m */,
+				CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */,
 				CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */,
 				CCFD19D6203771EA008F2EA1 /* Info.plist */,
 			);
@@ -238,6 +241,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC893C13203B538F00ED7FC1 /* MessagePackRefObject.plist in Resources */,
 				CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -326,7 +330,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -378,7 +382,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;

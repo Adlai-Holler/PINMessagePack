@@ -20,15 +20,31 @@
 
 - (NSString *)readNSStringWithError:(NSError * _Nullable __autoreleasing *)error
 {
-  uint32_t bufSize;
-  if (![self readStringBufferSize:&bufSize]) {
+  if (self.currentValueType == PINMessagePackValueBinary) {
+    // Server is sending strings as binary, instead of string.
+    // Cover for them by converting to string if needed.
+    NSData *d = [self readNSDataWithError:error];
+    if (d) {
+      static dispatch_once_t onceToken;
+      dispatch_once(&onceToken, ^{
+        NSLog(@"WARNING: Converting string from binary to string. Performance will suffer!");
+      });
+      return [[NSString alloc] initWithData:d encoding:NSUTF8StringEncoding];
+    } else {
+      return nil;
+    }
+  }
+  
+  uint32_t len;
+  if (![self readStringLength:&len]) {
     if (error) {
       *error = self.error;
     }
     return nil;
   }
   
-  if (bufSize < 2) {
+  uint32_t bufSize = len + 1;
+  if (len == 0) {
     // TODO: Have to read this even though it does nothing.
     char buf[bufSize];
     if (![self readString:buf bufferSize:bufSize]) {
@@ -37,11 +53,9 @@
     return @"";
   }
   
-  // Account for NULL terminator.
-  uint32_t len = bufSize - 1;
-  
   // For small strings (tagged pointers) read into a stack buffer and pass to string. This will save
-  // us a malloc/free pair. For larger strings, go ahead and malloc and 
+  // us a malloc/free pair. For larger strings, go ahead and malloc and create
+  // the string "NoCopy".
   NSString *result;
   if (len <= STR_MAX_TAGGED_PTR_LEN) {
     char buf[bufSize];
@@ -100,10 +114,8 @@
   
   CFTypeRef vals[count];
   for (NSUInteger i = 0; i < count; i++) {
-    vals[i] = (__bridge_retained CFTypeRef)[self readObjectWithError:error];
-    
     // In case of an error, we don't want to leak these so we need to release them.
-    if (vals[i] == NULL) {
+    if (!(vals[i] = (__bridge_retained CFTypeRef)[self readObjectWithError:error])) {
       for (NSUInteger j = 0; j < i; j++) {
         CFRelease(vals[j]);
       }
@@ -136,12 +148,6 @@
       return nil;
     }
     
-    if (CFGetTypeID(keys[i]) == CFDataGetTypeID()) {
-      id str = [[NSString alloc] initWithData:(__bridge id)keys[i] encoding:NSUTF8StringEncoding];
-      CFRelease(keys[i]);
-      keys[i] = (__bridge_retained CFStringRef)str;
-    }
-    
     // Read val
     if (!(vals[i] = (__bridge_retained CFTypeRef)[self readObjectWithError:error])) {
       for (NSUInteger j = 0; j < i; j++) {
@@ -153,6 +159,11 @@
     }
   }
   return [NSDictionary pin_dictionaryWithRetainedObjects:vals keys:keys count:count];
+}
+
+- (nullable NSURL *)readNSURLWithError:(NSError **)error
+{
+  return [NSURL URLWithString:[self readNSStringWithError:error]];
 }
 
 - (id)readObjectWithError:(NSError **)error
@@ -169,7 +180,9 @@
     case PINMessagePackValueString:
       return [self readNSStringWithError:error];
     case PINMessagePackValueBinary:
-      return [self readNSDataWithError:error];
+#warning Hack that treats all binary data as strings.
+      return [self readNSStringWithError:error];
+//      return [self readNSDataWithError:error];
     case PINMessagePackValueBool: {
       BOOL val;
       if (![self readBOOL:&val]) {

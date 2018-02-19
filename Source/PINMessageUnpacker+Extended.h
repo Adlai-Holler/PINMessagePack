@@ -14,6 +14,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (nullable NSString *)readNSStringWithError:(NSError **)error;
 
+- (nullable NSURL *)readNSURLWithError:(NSError **)error;
+
 - (nullable NSData *)readNSDataWithError:(NSError **)error;
 
 - (nullable NSArray *)readNSArrayWithError:(NSError **)error;
