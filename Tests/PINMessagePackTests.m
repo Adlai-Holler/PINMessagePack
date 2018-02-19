@@ -197,4 +197,18 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   XCTAssertEqualObjects(dict, (@{ @(key0) : @(val0), @(key1) : @(val1) }));
 }
 
+- (void)testARealResponse
+{
+  NSMutableString *base64String = [NSMutableString stringWithContentsOfFile:[[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil] encoding:NSUTF8StringEncoding error:NULL];
+  // Strip off trailing newline.
+  [base64String replaceCharactersInRange:NSMakeRange(base64String.length - 1, 1) withString:@""];
+  NSData *d = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
+  
+  NSInputStream *s = [NSInputStream inputStreamWithData:d];
+  PINMessageUnpacker *u = [[PINMessageUnpacker alloc] initWithInputStream:s];
+  NSError *e;
+  id obj = [u readObjectWithError:&e];
+  XCTAssertNotNil(obj);
+  XCTAssertNil(e);
+}
 @end

@@ -12,6 +12,8 @@
 extern PINMessagePackValueType PINMessagePackValueTypeFromCMPType(int cmpType)
 {
   switch (cmpType) {
+    case CMP_TYPE_BOOLEAN:
+      return PINMessagePackValueBool;
     case CMP_TYPE_NIL:
       return PINMessagePackValueNil;
     case CMP_TYPE_STR8:
@@ -41,6 +43,7 @@ extern PINMessagePackValueType PINMessagePackValueTypeFromCMPType(int cmpType)
       return PINMessagePackSignedInteger;
     case CMP_TYPE_SINT64:
       return PINMessagePackSignedInt64;
+    case CMP_TYPE_POSITIVE_FIXNUM:
     case CMP_TYPE_UINT8:
     case CMP_TYPE_UINT16:
     case CMP_TYPE_UINT32:

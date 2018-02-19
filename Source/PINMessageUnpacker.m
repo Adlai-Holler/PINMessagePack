@@ -32,9 +32,21 @@
 }
 
 static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
+  // CFReadStream will block until at least 1 byte is available, but it
+  // won't block until "limit" is available. So we read in a loop, continually
+  // reading until we get as many bytes as we want, or there's an error (-1),
+  // or the stream ends (0).
   CFReadStreamRef stream = (CFReadStreamRef)ctx->buf;
-  CFIndex count = CFReadStreamRead(stream, data, limit);
-  return (count != -1);
+  CFIndex totalCount = 0;
+  while (totalCount < limit) {
+    CFIndex nextChunk = limit - totalCount;
+    CFIndex count = CFReadStreamRead(stream, data + totalCount, nextChunk);
+    if (count == 0 || count == -1) {
+      return false;
+    }
+    totalCount += count;
+  }
+  return true;
 }
 
 - (instancetype)initWithInputStream:(NSInputStream *)inputStream
@@ -67,6 +79,11 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   ACQUIRE_OBJECT(PINMessagePackValueType);
   return PINMessagePackValueTypeFromCMPType((&_currentObj)->type);
+}
+
+- (BOOL)readNil
+{
+  CONSUME_OBJECT(cmp_object_is_nil(&_currentObj));
 }
 
 - (BOOL)readBOOL:(out BOOL *)boolPtr

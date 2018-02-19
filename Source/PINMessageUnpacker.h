@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Objects of this class are not thread-safe, and must be paired with a lock to
  * be accessed from multiple threads.
+ *
+ * Unpackers take responsibility for opening and closing their input streams.
  */
 __attribute__((objc_subclassing_restricted))
 @interface PINMessageUnpacker : NSObject
@@ -43,6 +45,8 @@ __attribute__((objc_subclassing_restricted))
 #pragma mark - Reading
 
 @property (nonatomic, readonly) PINMessagePackValueType currentValueType;
+
+- (BOOL)readNil;
 
 /**
  * Read the next BOOL value.

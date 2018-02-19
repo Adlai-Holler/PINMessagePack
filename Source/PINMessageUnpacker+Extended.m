@@ -29,6 +29,11 @@
   }
   
   if (bufSize < 2) {
+    // TODO: Have to read this even though it does nothing.
+    char buf[bufSize];
+    if (![self readString:buf bufferSize:bufSize]) {
+      return nil;
+    }
     return @"";
   }
   
@@ -65,6 +70,11 @@
     return nil;
   }
   if (length == 0) {
+    // TODO: Have to read this even though it does nothing.
+    char buf[length];
+    if (![self readData:buf length:length]) {
+      return nil;
+    }
     return [NSData data];
   }
   
@@ -126,6 +136,12 @@
       return nil;
     }
     
+    if (CFGetTypeID(keys[i]) == CFDataGetTypeID()) {
+      id str = [[NSString alloc] initWithData:(__bridge id)keys[i] encoding:NSUTF8StringEncoding];
+      CFRelease(keys[i]);
+      keys[i] = (__bridge_retained CFStringRef)str;
+    }
+    
     // Read val
     if (!(vals[i] = (__bridge_retained CFTypeRef)[self readObjectWithError:error])) {
       for (NSUInteger j = 0; j < i; j++) {
@@ -146,8 +162,10 @@
       return [self readNSDictionaryWithError:error];
     case PINMessagePackValueArray:
       return [self readNSArrayWithError:error];
-    case PINMessagePackValueNil:
-      return nil;
+    case PINMessagePackValueNil: {
+      BOOL result = [self readNil];
+      return result ? (id)kCFNull : nil;
+    }
     case PINMessagePackValueString:
       return [self readNSStringWithError:error];
     case PINMessagePackValueBinary:

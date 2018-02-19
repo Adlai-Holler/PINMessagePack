@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		CCCDB2402039F1D20097C6A3 /* PINCollections.h in Headers */ = {isa = PBXBuildFile; fileRef = CCCDB23E2039F1D20097C6A3 /* PINCollections.h */; };
 		CCCDB2412039F1D20097C6A3 /* PINCollections.m in Sources */ = {isa = PBXBuildFile; fileRef = CCCDB23F2039F1D20097C6A3 /* PINCollections.m */; };
+		CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */ = {isa = PBXBuildFile; fileRef = CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */; };
 		CCFD19D0203771EA008F2EA1 /* PINMessagePack.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCFD19C6203771EA008F2EA1 /* PINMessagePack.framework */; };
 		CCFD19D5203771EA008F2EA1 /* PINMessagePackTests.m in Sources */ = {isa = PBXBuildFile; fileRef = CCFD19D4203771EA008F2EA1 /* PINMessagePackTests.m */; };
 		CCFD19D7203771EA008F2EA1 /* PINMessagePack.h in Headers */ = {isa = PBXBuildFile; fileRef = CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -37,6 +38,7 @@
 /* Begin PBXFileReference section */
 		CCCDB23E2039F1D20097C6A3 /* PINCollections.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINCollections.h; sourceTree = "<group>"; };
 		CCCDB23F2039F1D20097C6A3 /* PINCollections.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINCollections.m; sourceTree = "<group>"; };
+		CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */ = {isa = PBXFileReference; lastKnownFileType = text; path = SampleDataBase64; sourceTree = "<group>"; };
 		CCFD19C6203771EA008F2EA1 /* PINMessagePack.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PINMessagePack.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINMessagePack.h; sourceTree = "<group>"; };
 		CCFD19CA203771EA008F2EA1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 			isa = PBXGroup;
 			children = (
 				CCFD19D4203771EA008F2EA1 /* PINMessagePackTests.m */,
+				CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */,
 				CCFD19D6203771EA008F2EA1 /* Info.plist */,
 			);
 			path = Tests;
@@ -235,6 +238,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
