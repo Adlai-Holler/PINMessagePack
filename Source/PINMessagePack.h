@@ -15,7 +15,6 @@ FOUNDATION_EXPORT double PINMessagePackVersionNumber;
 FOUNDATION_EXPORT const unsigned char PINMessagePackVersionString[];
 
 #import <PINMessagePack/PINMessagePackError.h>
-#import <PINMessagePack/PINMessagePackValues.h>
-
+#import <PINMessagePack/PINStreamingDecoding.h>
 #import <PINMessagePack/PINMessageUnpacker.h>
-#import <PINMessagePack/PINMessageUnpacker+Extended.h>
+

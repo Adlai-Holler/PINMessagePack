@@ -31,4 +31,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+@interface NSSet (PINCollection)
+
++ (NSSet *)pin_setWithRetainedObjects:(CFTypeRef _Nonnull [_Nonnull])objects
+                                count:(NSUInteger)count;
+
+@end
+
 NS_ASSUME_NONNULL_END

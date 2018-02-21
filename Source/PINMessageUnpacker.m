@@ -9,30 +9,26 @@
 #import "PINMessageUnpacker.h"
 #import "cmp.h"
 #import "PINMessagePackError.h"
+#import "PINCollections.h"
 
-#if __LP64__ || (TARGET_OS_EMBEDDED && !TARGET_OS_IPHONE) || TARGET_OS_WIN32 || NS_BUILD_32_LIKE_64
-  #define NS_INTEGER_IS_64
-#endif
+#define CHECK_ERROR() NSCAssert(0 == (&_cmpContext)->error, @"Decoding error: %@", self.error);
 
-#define ACQUIRE_OBJECT(returnType) \
-  if (!_currentObjValid) { \
-    if (!cmp_read_object(&_cmpContext, &_currentObj)) { \
-      return (returnType)NO; \
-    } \
-    _currentObjValid = YES; \
+#define SET_AND_REPORT_ERROR(code) (&_cmpContext)->error = code; CHECK_ERROR();
+
+/// Checks that the class is either Nil or the specified one.
+/// On fail, report error and return nil.
+#define ENSURE_CLASS(c, e) \
+  if (c && c != e) { \
+    SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType); \
+    return nil; \
   }
-
-#define CONSUME_OBJECT(body) \
-  BOOL result = body; \
-  _currentObjValid = NO; \
-  return result;
 
 @implementation PINMessageUnpacker {
   cmp_ctx_t _cmpContext;
   NSInputStream *_inputStream;
   
-  cmp_object_t _currentObj;
-  BOOL _currentObjValid;
+  NSMutableData *_buf;
+  uint32_t _pendingMapCount;
 }
 
 static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
@@ -61,6 +57,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     _inputStream = inputStream;
     [_inputStream open];
     cmp_init(&_cmpContext, (__bridge CFReadStreamRef)inputStream, stream_reader, NULL, NULL);
+    static NSUInteger const kInitialBufferLength = 64;
+    _buf = [NSMutableData dataWithLength:kInitialBufferLength];
   }
   return self;
 }
@@ -79,100 +77,334 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   [_inputStream close];
 }
 
-- (PINMessagePackValueType)currentValueType
+- (NSInteger)decodeInteger
 {
-  ACQUIRE_OBJECT(PINMessagePackValueType);
-  return PINMessagePackValueTypeFromCMPType((&_currentObj)->type);
+  if (sizeof(NSInteger) == sizeof(int64_t)) {
+    int64_t v;
+    if (!cmp_read_long(&_cmpContext, &v)) {
+      CHECK_ERROR();
+      return 0;
+    }
+    return (NSInteger)v;
+  } else {
+    int32_t v;
+    if (!cmp_read_int(&_cmpContext, &v)) {
+      CHECK_ERROR();
+      return 0;
+    }
+    return (NSInteger)v;
+  }
 }
 
-- (BOOL)readNil
+- (char *)decodeCStringWithReturnedLength:(NSUInteger *)lengthPtr
 {
-  CONSUME_OBJECT(cmp_object_is_nil(&_currentObj));
+  cmp_object_t o;
+  if (!cmp_read_object(&_cmpContext, &o)) {
+    CHECK_ERROR();
+    *lengthPtr = 0;
+    return "";
+  }
+  
+  uint32_t len;
+  switch (o.type) {
+    case CMP_TYPE_STR8:
+    case CMP_TYPE_STR16:
+    case CMP_TYPE_STR32:
+    case CMP_TYPE_FIXSTR:
+      len = o.as.str_size;
+      break;
+    default:
+      SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+      return nil;
+  }
+  uint32_t bufSize = len + 1;
+  if (bufSize > _buf.length) {
+    _buf.length = bufSize;
+  }
+  void *bufPtr = _buf.mutableBytes;
+  if (!cmp_object_to_str(&_cmpContext, &o, bufPtr, bufSize)) {
+    CHECK_ERROR();
+    *lengthPtr = 0;
+    return "";
+  }
+  *lengthPtr = len;
+  return bufPtr;
 }
 
-- (BOOL)readBOOL:(out BOOL *)boolPtr
+- (id)decodeObjectOfClass:(Class)class
 {
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_bool(&_currentObj, (bool *)boolPtr));
+  NSParameterAssert(class != Nil);
+  return [self _decodeObjectOfClass:class allowNull:NO];
 }
 
-- (BOOL)readInteger:(out NSInteger *)intPtr
+- (id)_decodeObjectOfClass:(Class)class allowNull:(BOOL)allowNull
 {
-  ACQUIRE_OBJECT(BOOL);
-#ifdef NS_INTEGER_IS_64
-  return [self readInt64:(int64_t *)intPtr];
-#else
-  CONSUME_OBJECT(cmp_object_as_int(&_currentObj, intPtr));
-#endif
+  static Class numberClass;
+  static Class stringClass;
+  static Class dataClass;
+  static Class arrayClass;
+  static Class dictionaryClass;
+  static Class setClass;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    numberClass = [NSNumber class];
+    stringClass = [NSString class];
+    dataClass = [NSData class];
+    arrayClass = [NSArray class];
+    dictionaryClass = [NSDictionary class];
+    setClass = [NSSet class];
+  });
+  
+  // If we have a custom class, immediately give them control and don't
+  // pull any data from the stream.
+  if (class && class != numberClass && class != stringClass && class != dataClass && class != arrayClass && class != dictionaryClass && class != setClass) {
+    id<PINStreamingDecoding> inst = [class alloc];
+    // Currently no production check on this. If they pass an invalid
+    // class, they'll get hit with an easily-understandable
+    // doesNotRespondToSelector: exception.
+    return [inst initWithStreamingDecoder:self];
+  }
+  
+  cmp_object_t o;
+  cmp_read_object(&_cmpContext, &o);
+  switch (o.type) {
+    case CMP_TYPE_NIL:
+      return (allowNull ? (id)kCFNull : nil);
+    case CMP_TYPE_STR8:
+    case CMP_TYPE_STR16:
+    case CMP_TYPE_STR32:
+    case CMP_TYPE_FIXSTR: {
+      ENSURE_CLASS(class, stringClass);
+      uint32_t len = o.as.str_size;
+      uint32_t bufSize = len + 1;
+      char *buf = malloc(bufSize);
+      NSString *result;
+      if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
+        CHECK_ERROR();
+        free(buf);
+        return nil;
+      }
+      
+      result = [[NSString alloc] initWithBytesNoCopy:buf length:len encoding:NSUTF8StringEncoding freeWhenDone:YES];
+      if (result == nil) {
+        SET_AND_REPORT_ERROR(PINMessagePackInternalError);
+        free(buf);
+        return nil;
+      }
+      
+      return result;
+    }
+    case CMP_TYPE_BIN8:
+    case CMP_TYPE_BIN16:
+    case CMP_TYPE_BIN32: {
+      ENSURE_CLASS(class, dataClass);
+      uint32_t size = o.as.bin_size;
+      void *data = malloc(size);
+      if (!cmp_object_to_bin(&_cmpContext, &o, data, size)) {
+        CHECK_ERROR();
+        free(data);
+        return nil;
+      }
+//      return [[NSString alloc] initWithBytesNoCopy:data length:size encoding:NSUTF8StringEncoding freeWhenDone:YES];
+      return [NSData dataWithBytesNoCopy:data length:size];
+    }
+    case CMP_TYPE_ARRAY16:
+    case CMP_TYPE_ARRAY32:
+    case CMP_TYPE_FIXARRAY:
+      if (!class || class == arrayClass) {
+        return [self _decodeArrayOrSet:NO count:o.as.array_size class:Nil];
+      } else if (class == setClass) {
+        return [self _decodeArrayOrSet:YES count:o.as.array_size class:Nil];
+      } else {
+        SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+        return nil;
+      }
+    case CMP_TYPE_MAP16:
+    case CMP_TYPE_MAP32:
+    case CMP_TYPE_FIXMAP:
+      ENSURE_CLASS(class, dictionaryClass);
+      return [self _decodeDictionaryWithCount:o.as.map_size keyClass:Nil objectClass:Nil];
+    case CMP_TYPE_BOOLEAN:
+      ENSURE_CLASS(class, numberClass);
+      return (id)(o.as.boolean ? kCFBooleanTrue : kCFBooleanFalse);
+    case CMP_TYPE_DOUBLE:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.dbl);
+    case CMP_TYPE_FLOAT:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.flt);
+    case CMP_TYPE_POSITIVE_FIXNUM:
+    case CMP_TYPE_NEGATIVE_FIXNUM:
+    case CMP_TYPE_SINT8:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.s8);
+    case CMP_TYPE_SINT16:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.s16);
+    case CMP_TYPE_SINT32:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.s32);
+    case CMP_TYPE_SINT64:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.s64);
+    case CMP_TYPE_UINT8:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.u8);
+    case CMP_TYPE_UINT16:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.u16);
+    case CMP_TYPE_UINT32:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.u32);
+    case CMP_TYPE_UINT64:
+      ENSURE_CLASS(class, numberClass);
+      return @(o.as.u64);
+    default:
+      NSCAssert(NO, @"Failed to map.");
+      return nil;
+  }
 }
 
-- (BOOL)readUnsignedInteger:(out NSUInteger *)uintPtr
+- (NSArray *)decodeArrayOfClass:(Class)class
 {
-#ifdef NS_INTEGER_IS_64
-  return [self readUnsignedInt64:(uint64_t *)uintPtr];
-#else
-  CONSUME_OBJECT(cmp_object_as_uint(&_currentObj, uintPtr));
-#endif
+  uint32_t count;
+  if (!cmp_read_array(&_cmpContext, &count)) {
+    CHECK_ERROR();
+    return nil;
+  }
+  return [self _decodeArrayOrSet:NO count:count class:class];
 }
 
-- (BOOL)readInt64:(out int64_t *)llPtr
+- (NSSet *)decodeSetOfClass:(Class)class
 {
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_sinteger(&_currentObj, llPtr));
+  uint32_t count;
+  if (!cmp_read_array(&_cmpContext, &count)) {
+    CHECK_ERROR();
+    return nil;
+  }
+  return [self _decodeArrayOrSet:YES count:count class:class];
 }
 
-- (BOOL)readUnsignedInt64:(out uint64_t *)ullPtr
+- (id)_decodeArrayOrSet:(BOOL)isSet count:(NSUInteger)count class:(Class)class
 {
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_uinteger(&_currentObj, ullPtr));
+  CFTypeRef vals[count];
+  for (NSUInteger i = 0; i < count; i++) {
+    if (!(vals[i] = (__bridge_retained CFTypeRef)[self _decodeObjectOfClass:class allowNull:YES])) {
+      // In case of an error, we don't want to leak these so we need to release them.
+      for (NSUInteger j = 0; j < i; j++) {
+        CFRelease(vals[j]);
+      }
+      return nil;
+    }
+  }
+  if (isSet) {
+    return [NSSet pin_setWithRetainedObjects:vals count:count];
+  } else {
+    return [NSArray pin_arrayWithRetainedObjects:vals count:count];
+  }
 }
 
-- (BOOL)readFloat:(out float *)floatPtr
+- (NSDictionary *)decodeDictionaryWithKeyClass:(Class)keyClass objectClass:(Class)objectClass
 {
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_float(&_currentObj, floatPtr));
+  uint32_t count;
+  if (!cmp_read_map(&_cmpContext, &count)) {
+    CHECK_ERROR();
+    return nil;
+  }
+  
+  return [self _decodeDictionaryWithCount:count keyClass:keyClass objectClass:objectClass];
 }
 
-- (BOOL)readDouble:(out double *)doublePtr
+- (NSDictionary *)_decodeDictionaryWithCount:(NSUInteger)count keyClass:(Class)keyClass objectClass:(Class)objectClass
 {
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_double(&_currentObj, doublePtr));
+  CFTypeRef keys[count];
+  CFTypeRef vals[count];
+  for (NSUInteger i = 0; i < count; i++) {
+    
+    // Read key
+    if (!(keys[i] = (__bridge_retained CFTypeRef)[self _decodeObjectOfClass:keyClass allowNull:YES])) {
+      for (NSUInteger j = 0; j < i; j++) {
+        CFRelease(keys[j]);
+        CFRelease(vals[j]);
+      }
+      return nil;
+    }
+    
+    // Read val
+    if (!(vals[i] = (__bridge_retained CFTypeRef)[self _decodeObjectOfClass:objectClass allowNull:YES])) {
+      for (NSUInteger j = 0; j < i; j++) {
+        CFRelease(keys[j]);
+        CFRelease(vals[j]);
+      }
+      CFRelease(keys[i]);
+      return nil;
+    }
+  }
+  return [NSDictionary pin_dictionaryWithRetainedObjects:vals keys:keys count:count];
 }
 
-- (BOOL)readStringLength:(out uint32_t *)lengthPtr
+- (double)decodeDouble
 {
-  ACQUIRE_OBJECT(BOOL);
-  return cmp_object_as_str(&_currentObj, lengthPtr);
+  cmp_object_t o;
+  if (!cmp_read_object(&_cmpContext, &o)) {
+    CHECK_ERROR();
+    return 0;
+  }
+  switch (o.type) {
+    case CMP_TYPE_DOUBLE:
+      return o.as.dbl;
+    case CMP_TYPE_FLOAT:
+      return (double)o.as.flt;
+    default:
+      SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+      return 0;
+  }
 }
 
-- (BOOL)readDataLength:(out uint32_t *)lengthPtr
+- (BOOL)decodeBOOL
 {
-  ACQUIRE_OBJECT(BOOL);
-  return cmp_object_as_bin(&_currentObj, lengthPtr);
+  bool b;
+  if (!cmp_read_bool(&_cmpContext, &b)) {
+    CHECK_ERROR();
+    return NO;
+  }
+  return (BOOL)b;
 }
 
-- (BOOL)readString:(char *)string bufferSize:(uint32_t)size
-{
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_to_str(&_cmpContext, &_currentObj, string, size));
-}
-
-- (BOOL)readData:(void *)buffer length:(uint32_t)length
-{
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_to_bin(&_cmpContext, &_currentObj, buffer, length));
-}
-
-- (BOOL)readArrayCount:(out uint32_t *)countPtr
-{
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_array(&_currentObj, countPtr));
-}
-
-- (BOOL)readMapCount:(out uint32_t *)countPtr
-{
-  ACQUIRE_OBJECT(BOOL);
-  CONSUME_OBJECT(cmp_object_as_map(&_currentObj, countPtr));
+- (void)enumerateKeysInMapWithBlock:(nonnull void (^)(const char * _Nonnull, NSUInteger))block {
+  uint32_t c;
+  if (_pendingMapCount > 0) {
+    c = _pendingMapCount;
+  } else {
+    if (!cmp_read_map(&_cmpContext, &c)) {
+      CHECK_ERROR();
+      return;
+    }
+  }
+  for (uint32_t i = 0; i < c; i++) {
+    // Can't use cmp_read_str because we want to read
+    // into a stack buf and need to get size THEN contents.
+    cmp_object_t o;
+    cmp_read_object(&_cmpContext, &o);
+    switch (o.type) {
+      case CMP_TYPE_STR8:
+      case CMP_TYPE_STR16:
+      case CMP_TYPE_STR32:
+      case CMP_TYPE_FIXSTR: {
+        uint32_t len = o.as.str_size;
+        char key[len+1];
+        if (!cmp_object_to_str(&_cmpContext, &o, key, len+1)) {
+          CHECK_ERROR();
+          return;
+        }
+        block(key, len);
+        break;
+      }
+      default:
+        SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+        return;
+    }
+  }
 }
 
 @end

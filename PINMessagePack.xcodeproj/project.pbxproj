@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CC893C13203B538F00ED7FC1 /* MessagePackRefObject.plist in Resources */ = {isa = PBXBuildFile; fileRef = CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */; };
+		CC893C1D203CBDB400ED7FC1 /* PINStreamingDecoding.h in Headers */ = {isa = PBXBuildFile; fileRef = CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CCCDB2402039F1D20097C6A3 /* PINCollections.h in Headers */ = {isa = PBXBuildFile; fileRef = CCCDB23E2039F1D20097C6A3 /* PINCollections.h */; };
 		CCCDB2412039F1D20097C6A3 /* PINCollections.m in Sources */ = {isa = PBXBuildFile; fileRef = CCCDB23F2039F1D20097C6A3 /* PINCollections.m */; };
 		CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */ = {isa = PBXBuildFile; fileRef = CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */; };
@@ -19,11 +20,7 @@
 		CCFD19E820377833008F2EA1 /* cmp.c in Sources */ = {isa = PBXBuildFile; fileRef = CCFD19E620377833008F2EA1 /* cmp.c */; };
 		CCFD19E920377833008F2EA1 /* cmp.h in Headers */ = {isa = PBXBuildFile; fileRef = CCFD19E720377833008F2EA1 /* cmp.h */; };
 		CCFD19EC20378D5B008F2EA1 /* PINMessagePackError.h in Headers */ = {isa = PBXBuildFile; fileRef = CCFD19EB20378D5B008F2EA1 /* PINMessagePackError.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		CCFD19EF2037953F008F2EA1 /* PINMessagePackValues.m in Sources */ = {isa = PBXBuildFile; fileRef = CCFD19EE2037953F008F2EA1 /* PINMessagePackValues.m */; };
-		CCFD19F2203795B0008F2EA1 /* PINMessageUnpacker+Extended.h in Headers */ = {isa = PBXBuildFile; fileRef = CCFD19F0203795B0008F2EA1 /* PINMessageUnpacker+Extended.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		CCFD19F3203795B0008F2EA1 /* PINMessageUnpacker+Extended.m in Sources */ = {isa = PBXBuildFile; fileRef = CCFD19F1203795B0008F2EA1 /* PINMessageUnpacker+Extended.m */; };
 		CCFD19F52037A8F0008F2EA1 /* PINMessagePackError.m in Sources */ = {isa = PBXBuildFile; fileRef = CCFD19F42037A8F0008F2EA1 /* PINMessagePackError.m */; };
-		CCFD19F62037C09F008F2EA1 /* PINMessagePackValues.h in Headers */ = {isa = PBXBuildFile; fileRef = CCFD19ED20379472008F2EA1 /* PINMessagePackValues.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +35,7 @@
 
 /* Begin PBXFileReference section */
 		CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = MessagePackRefObject.plist; sourceTree = "<group>"; };
+		CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINStreamingDecoding.h; sourceTree = "<group>"; };
 		CCCDB23E2039F1D20097C6A3 /* PINCollections.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINCollections.h; sourceTree = "<group>"; };
 		CCCDB23F2039F1D20097C6A3 /* PINCollections.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINCollections.m; sourceTree = "<group>"; };
 		CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */ = {isa = PBXFileReference; lastKnownFileType = text; path = SampleDataBase64; sourceTree = "<group>"; };
@@ -52,10 +50,6 @@
 		CCFD19E620377833008F2EA1 /* cmp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmp.c; sourceTree = "<group>"; };
 		CCFD19E720377833008F2EA1 /* cmp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmp.h; sourceTree = "<group>"; };
 		CCFD19EB20378D5B008F2EA1 /* PINMessagePackError.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINMessagePackError.h; sourceTree = "<group>"; };
-		CCFD19ED20379472008F2EA1 /* PINMessagePackValues.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINMessagePackValues.h; sourceTree = "<group>"; };
-		CCFD19EE2037953F008F2EA1 /* PINMessagePackValues.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINMessagePackValues.m; sourceTree = "<group>"; };
-		CCFD19F0203795B0008F2EA1 /* PINMessageUnpacker+Extended.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "PINMessageUnpacker+Extended.h"; sourceTree = "<group>"; };
-		CCFD19F1203795B0008F2EA1 /* PINMessageUnpacker+Extended.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "PINMessageUnpacker+Extended.m"; sourceTree = "<group>"; };
 		CCFD19F42037A8F0008F2EA1 /* PINMessagePackError.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINMessagePackError.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -99,18 +93,15 @@
 		CCFD19C8203771EA008F2EA1 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				CCFD19EA2037783C008F2EA1 /* cmp */,
+				CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */,
 				CCCDB23E2039F1D20097C6A3 /* PINCollections.h */,
 				CCCDB23F2039F1D20097C6A3 /* PINCollections.m */,
 				CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */,
 				CCFD19EB20378D5B008F2EA1 /* PINMessagePackError.h */,
 				CCFD19F42037A8F0008F2EA1 /* PINMessagePackError.m */,
-				CCFD19ED20379472008F2EA1 /* PINMessagePackValues.h */,
-				CCFD19EE2037953F008F2EA1 /* PINMessagePackValues.m */,
-				CCFD19EA2037783C008F2EA1 /* cmp */,
 				CCFD19E020377259008F2EA1 /* PINMessageUnpacker.h */,
 				CCFD19E120377259008F2EA1 /* PINMessageUnpacker.m */,
-				CCFD19F0203795B0008F2EA1 /* PINMessageUnpacker+Extended.h */,
-				CCFD19F1203795B0008F2EA1 /* PINMessageUnpacker+Extended.m */,
 				CCFD19CA203771EA008F2EA1 /* Info.plist */,
 			);
 			path = Source;
@@ -144,10 +135,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				CCFD19EC20378D5B008F2EA1 /* PINMessagePackError.h in Headers */,
-				CCFD19F2203795B0008F2EA1 /* PINMessageUnpacker+Extended.h in Headers */,
+				CC893C1D203CBDB400ED7FC1 /* PINStreamingDecoding.h in Headers */,
 				CCFD19E920377833008F2EA1 /* cmp.h in Headers */,
 				CCCDB2402039F1D20097C6A3 /* PINCollections.h in Headers */,
-				CCFD19F62037C09F008F2EA1 /* PINMessagePackValues.h in Headers */,
 				CCFD19D7203771EA008F2EA1 /* PINMessagePack.h in Headers */,
 				CCFD19E220377259008F2EA1 /* PINMessageUnpacker.h in Headers */,
 			);
@@ -203,6 +193,7 @@
 				TargetAttributes = {
 					CCFD19C5203771EA008F2EA1 = {
 						CreatedOnToolsVersion = 9.2;
+						LastSwiftMigration = 0920;
 						ProvisioningStyle = Automatic;
 					};
 					CCFD19CE203771EA008F2EA1 = {
@@ -254,10 +245,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				CCFD19E820377833008F2EA1 /* cmp.c in Sources */,
-				CCFD19F3203795B0008F2EA1 /* PINMessageUnpacker+Extended.m in Sources */,
 				CCFD19E320377259008F2EA1 /* PINMessageUnpacker.m in Sources */,
 				CCCDB2412039F1D20097C6A3 /* PINCollections.m in Sources */,
-				CCFD19EF2037953F008F2EA1 /* PINMessagePackValues.m in Sources */,
 				CCFD19F52037A8F0008F2EA1 /* PINMessagePackError.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -394,6 +383,7 @@
 		CCFD19DB203771EA008F2EA1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;
@@ -416,6 +406,7 @@
 		CCFD19DC203771EA008F2EA1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				DEFINES_MODULE = YES;

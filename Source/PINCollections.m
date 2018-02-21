@@ -111,3 +111,29 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
 }
 
 @end
+
+@implementation NSSet (PINCollection)
+
++ (NSSet *)pin_setWithRetainedObjects:(CFTypeRef  _Nonnull [])objects count:(NSUInteger)count
+{
+  // NSSetZero singleton.
+  if (count == 0) {
+    return [NSSet set];
+  }
+  // NSSingleObjectSet specialization.
+  if (count == 1) {
+    return [NSSet setWithObject:(__bridge_transfer id)objects[0]];
+  }
+  static CFSetCallBacks cb;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    cb = kCFTypeSetCallBacks;
+    cb.retain = PINRetainCallback;
+  });
+  PINSkipRetainFlag(PINFlagSet);
+  NSSet *result = (__bridge NSSet *)CFSetCreate(kCFAllocatorDefault, objects, count, &cb);
+  PINSkipRetainFlag(PINFlagClear);
+  return result;
+}
+
+@end
