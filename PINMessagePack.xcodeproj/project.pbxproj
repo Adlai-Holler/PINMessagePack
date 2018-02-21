@@ -72,6 +72,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CCAD80B3203E042A00D7B84F /* include */ = {
+			isa = PBXGroup;
+			children = (
+				CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */,
+				CCCDB23E2039F1D20097C6A3 /* PINCollections.h */,
+				CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */,
+				CCFD19EB20378D5B008F2EA1 /* PINMessagePackError.h */,
+				CCFD19E020377259008F2EA1 /* PINMessageUnpacker.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
 		CCFD19BC203771EA008F2EA1 = {
 			isa = PBXGroup;
 			children = (
@@ -94,13 +106,9 @@
 			isa = PBXGroup;
 			children = (
 				CCFD19EA2037783C008F2EA1 /* cmp */,
-				CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */,
-				CCCDB23E2039F1D20097C6A3 /* PINCollections.h */,
+				CCAD80B3203E042A00D7B84F /* include */,
 				CCCDB23F2039F1D20097C6A3 /* PINCollections.m */,
-				CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */,
-				CCFD19EB20378D5B008F2EA1 /* PINMessagePackError.h */,
 				CCFD19F42037A8F0008F2EA1 /* PINMessagePackError.m */,
-				CCFD19E020377259008F2EA1 /* PINMessageUnpacker.h */,
 				CCFD19E120377259008F2EA1 /* PINMessageUnpacker.m */,
 				CCFD19CA203771EA008F2EA1 /* Info.plist */,
 			);
