@@ -11,6 +11,16 @@
 #import "PINMessagePackError.h"
 #import "PINCollections.h"
 
+// Determined experimentally on iOS 11.2
+// If this value is wrong, we'll see a teeny-tiny performance penalty.
+// - If it's larger than the real value, then we'll copy small strings
+// to the stack and THEN to the heap instead of going straight to the heap.
+// - If it's smaller than the real value, then we'll malloc & free when we
+// could have just stayed on the stack the whole time.
+#if __LP64__
+#define TAGGED_PTR_STRING_MAX_LEN 9
+#endif
+
 #define CHECK_ERROR() NSCAssert(0 == (&_cmpContext)->error, @"Decoding error: %@", self.error);
 
 #define SET_AND_REPORT_ERROR(code) (&_cmpContext)->error = code; CHECK_ERROR();
@@ -177,6 +187,20 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       ENSURE_CLASS(class, stringClass);
       uint32_t len = o.as.str_size;
       uint32_t bufSize = len + 1;
+
+#ifdef TAGGED_PTR_STRING_MAX_LEN
+      // If it's a short string, skip the heap and stay on the stack
+      // hoping for the system to use a tagged pointer.
+      if (len <= TAGGED_PTR_STRING_MAX_LEN) {
+        char buf[bufSize];
+        if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
+          CHECK_ERROR();
+          return nil;
+        }
+        return [[NSString alloc] initWithBytes:buf length:len encoding:NSUTF8StringEncoding];
+      }
+#endif
+      
       char *buf = malloc(bufSize);
       NSString *result;
       if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
@@ -205,7 +229,6 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
         free(data);
         return nil;
       }
-//      return [[NSString alloc] initWithBytesNoCopy:data length:size encoding:NSUTF8StringEncoding freeWhenDone:YES];
       return [NSData dataWithBytesNoCopy:data length:size];
     }
     case CMP_TYPE_ARRAY16:

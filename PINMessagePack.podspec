@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = "9.0"
 
-  s.source_files =         'Source/**/*.{h,m,c}'
+  s.source_files =         'Source/**/*.{h,m}'
   s.public_header_files =  'Source/include/*.h'
   s.private_header_files = 'Source/cmp/*.h'
   

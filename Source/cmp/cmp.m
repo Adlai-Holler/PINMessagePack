@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#import <CoreFoundation/CFByteOrder.h>
 
 #include "cmp.h"
 
@@ -119,99 +120,6 @@ const char *cmp_error_messages[ERROR_MAX + 1] = {
   "Internal error",
   "Max Error"
 };
-
-static const int32_t _i = 1;
-#define is_bigendian() ((*(char *)&_i) == 0)
-
-static uint16_t be16(uint16_t x) {
-  char *b = (char *)&x;
-
-  if (!is_bigendian()) {
-    char swap = 0;
-
-    swap = b[0];
-    b[0] = b[1];
-    b[1] = swap;
-  }
-
-  return x;
-}
-
-static uint32_t be32(uint32_t x) {
-  char *b = (char *)&x;
-
-  if (!is_bigendian()) {
-    char swap = 0;
-
-    swap = b[0];
-    b[0] = b[3];
-    b[3] = swap;
-
-    swap = b[1];
-    b[1] = b[2];
-    b[2] = swap;
-  }
-
-  return x;
-}
-
-static uint64_t be64(uint64_t x) {
-  char *b = (char *)&x;
-
-  if (!is_bigendian()) {
-    char swap = 0;
-
-    swap = b[0];
-    b[0] = b[7];
-    b[7] = swap;
-
-    swap = b[1];
-    b[1] = b[6];
-    b[6] = swap;
-
-    swap = b[2];
-    b[2] = b[5];
-    b[5] = swap;
-
-    swap = b[3];
-    b[3] = b[4];
-    b[4] = swap;
-  }
-
-  return x;
-}
-
-static float decode_befloat(char *b) {
-  float f = 0.;
-  char *fb = (char *)&f;
-
-  if (!is_bigendian()) {
-    fb[0] = b[3];
-    fb[1] = b[2];
-    fb[2] = b[1];
-    fb[3] = b[0];
-  }
-
-  return f;
-}
-
-static double decode_bedouble(char *b) {
-  double d = 0.;
-  char *db = (char *)&d;
-
-  if (!is_bigendian()) {
-    db[0] = b[7];
-    db[1] = b[6];
-    db[2] = b[5];
-    db[3] = b[4];
-    db[4] = b[3];
-    db[5] = b[2];
-    db[6] = b[1];
-    db[7] = b[0];
-  }
-
-  return d;
-}
 
 static bool read_byte(cmp_ctx_t *ctx, uint8_t *x) {
   return ctx->read(ctx, x, sizeof(uint8_t));
@@ -427,14 +335,14 @@ static bool read_type_size(cmp_ctx_t *ctx, uint8_t type_marker,
         ctx->error = LENGTH_READING_ERROR;
         return false;
       }
-      *size = be16(u16temp);
+      *size = CFSwapInt16BigToHost(u16temp);
       return true;
     case CMP_TYPE_BIN32:
       if (!ctx->read(ctx, &u32temp, sizeof(uint32_t))) {
         ctx->error = LENGTH_READING_ERROR;
         return false;
       }
-      *size = be32(u32temp);
+      *size = CFSwapInt32BigToHost(u32temp);
       return true;
     case CMP_TYPE_EXT8:
       if (!ctx->read(ctx, &u8temp, sizeof(uint8_t))) {
@@ -448,14 +356,14 @@ static bool read_type_size(cmp_ctx_t *ctx, uint8_t type_marker,
         ctx->error = LENGTH_READING_ERROR;
         return false;
       }
-      *size = be16(u16temp);
+      *size = CFSwapInt16BigToHost(u16temp);
       return true;
     case CMP_TYPE_EXT32:
       if (!ctx->read(ctx, &u32temp, sizeof(uint32_t))) {
         ctx->error = LENGTH_READING_ERROR;
         return false;
       }
-      *size = be32(u32temp);
+      *size = CFSwapInt32BigToHost(u32temp);
       return true;
     case CMP_TYPE_FLOAT:
       *size = 4;
@@ -514,42 +422,42 @@ static bool read_type_size(cmp_ctx_t *ctx, uint8_t type_marker,
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be16(u16temp);
+      *size = CFSwapInt16BigToHost(u16temp);
       return true;
     case CMP_TYPE_STR32:
       if (!ctx->read(ctx, &u32temp, sizeof(uint32_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be32(u32temp);
+      *size = CFSwapInt32BigToHost(u32temp);
       return true;
     case CMP_TYPE_ARRAY16:
       if (!ctx->read(ctx, &u16temp, sizeof(uint16_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be16(u16temp);
+      *size = CFSwapInt16BigToHost(u16temp);
       return true;
     case CMP_TYPE_ARRAY32:
       if (!ctx->read(ctx, &u32temp, sizeof(uint32_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be32(u32temp);
+      *size = CFSwapInt32BigToHost(u32temp);
       return true;
     case CMP_TYPE_MAP16:
       if (!ctx->read(ctx, &u16temp, sizeof(uint16_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be16(u16temp);
+      *size = CFSwapInt16BigToHost(u16temp);
       return true;
     case CMP_TYPE_MAP32:
       if (!ctx->read(ctx, &u32temp, sizeof(uint32_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      *size = be32(u32temp);
+      *size = CFSwapInt32BigToHost(u32temp);
       return true;
     case CMP_TYPE_NEGATIVE_FIXNUM:
       *size = 0;
@@ -596,21 +504,21 @@ static bool read_obj_data(cmp_ctx_t *ctx, uint8_t type_marker,
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.u16 = be16(obj->as.u16);
+      obj->as.u16 = CFSwapInt16BigToHost(obj->as.u16);
       return true;
     case CMP_TYPE_UINT32:
       if (!ctx->read(ctx, &obj->as.u32, sizeof(uint32_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.u32 = be32(obj->as.u32);
+      obj->as.u32 = CFSwapInt32BigToHost(obj->as.u32);
       return true;
     case CMP_TYPE_UINT64:
       if (!ctx->read(ctx, &obj->as.u64, sizeof(uint64_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.u64 = be64(obj->as.u64);
+      obj->as.u64 = CFSwapInt64BigToHost(obj->as.u64);
       return true;
     case CMP_TYPE_SINT8:
       if (!ctx->read(ctx, &obj->as.s8, sizeof(int8_t))) {
@@ -623,42 +531,42 @@ static bool read_obj_data(cmp_ctx_t *ctx, uint8_t type_marker,
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.s16 = be16(obj->as.s16);
+      obj->as.s16 = CFSwapInt16BigToHost(obj->as.s16);
       return true;
     case CMP_TYPE_SINT32:
       if (!ctx->read(ctx, &obj->as.s32, sizeof(int32_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.s32 = be32(obj->as.s32);
+      obj->as.s32 = CFSwapInt32BigToHost(obj->as.s32);
       return true;
     case CMP_TYPE_SINT64:
       if (!ctx->read(ctx, &obj->as.s64, sizeof(int64_t))) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.s64 = be64(obj->as.s64);
+      obj->as.s64 = CFSwapInt64BigToHost(obj->as.s64);
       return true;
     case CMP_TYPE_FLOAT:
     {
-      char bytes[4];
+      CFSwappedFloat32 bytes;
 
-      if (!ctx->read(ctx, bytes, 4)) {
+      if (!ctx->read(ctx, &bytes, 4)) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.flt = decode_befloat(bytes);
+      obj->as.flt = CFConvertFloatSwappedToHost(bytes);
       return true;
     }
     case CMP_TYPE_DOUBLE:
     {
-      char bytes[8];
+      CFSwappedFloat64 bytes;
 
-      if (!ctx->read(ctx, bytes, 8)) {
+      if (!ctx->read(ctx, &bytes, 8)) {
         ctx->error = DATA_READING_ERROR;
         return false;
       }
-      obj->as.dbl = decode_bedouble(bytes);
+      obj->as.dbl = CFConvertDoubleSwappedToHost(bytes);
       return true;
     }
     case CMP_TYPE_BIN8:
@@ -812,7 +720,7 @@ bool cmp_write_s16(cmp_ctx_t *ctx, int16_t s) {
   if (!write_type_marker(ctx, S16_MARKER))
     return false;
 
-  s = be16(s);
+  s = CFSwapInt16HostToBig(s);
 
   return ctx->write(ctx, &s, sizeof(int16_t));
 }
@@ -821,7 +729,7 @@ bool cmp_write_s32(cmp_ctx_t *ctx, int32_t i) {
   if (!write_type_marker(ctx, S32_MARKER))
     return false;
 
-  i = be32(i);
+  i = CFSwapInt32HostToBig(i);
 
   return ctx->write(ctx, &i, sizeof(int32_t));
 }
@@ -830,7 +738,7 @@ bool cmp_write_s64(cmp_ctx_t *ctx, int64_t l) {
   if (!write_type_marker(ctx, S64_MARKER))
     return false;
 
-  l = be64(l);
+  l = CFSwapInt64HostToBig(l);
 
   return ctx->write(ctx, &l, sizeof(int64_t));
 }
@@ -865,7 +773,7 @@ bool cmp_write_u16(cmp_ctx_t *ctx, uint16_t s) {
   if (!write_type_marker(ctx, U16_MARKER))
     return false;
 
-  s = be16(s);
+  s = CFSwapInt16HostToBig(s);
 
   return ctx->write(ctx, &s, sizeof(uint16_t));
 }
@@ -874,7 +782,7 @@ bool cmp_write_u32(cmp_ctx_t *ctx, uint32_t i) {
   if (!write_type_marker(ctx, U32_MARKER))
     return false;
 
-  i = be32(i);
+  i = CFSwapInt32HostToBig(i);
 
   return ctx->write(ctx, &i, sizeof(uint32_t));
 }
@@ -883,7 +791,7 @@ bool cmp_write_u64(cmp_ctx_t *ctx, uint64_t l) {
   if (!write_type_marker(ctx, U64_MARKER))
     return false;
 
-  l = be64(l);
+  l = CFSwapInt64HostToBig(l);
 
   return ctx->write(ctx, &l, sizeof(uint64_t));
 }
@@ -905,42 +813,18 @@ bool cmp_write_float(cmp_ctx_t *ctx, float f) {
   if (!write_type_marker(ctx, FLOAT_MARKER))
     return false;
 
-  /*
-   * We may need to swap the float's bytes, but we can't just swap them inside
-   * the float because the swapped bytes may not constitute a valid float.
-   * Therefore, we have to create a buffer and swap the bytes there.
-   */
-  if (!is_bigendian()) {
-    char swapped[sizeof(float)];
-    char *fbuf = (char *)&f;
-    size_t i;
+  CFSwappedFloat32 swapped = CFConvertFloatHostToSwapped(f);
 
-    for (i = 0; i < sizeof(float); i++)
-      swapped[i] = fbuf[sizeof(float) - i - 1];
-
-    return ctx->write(ctx, swapped, sizeof(float));
-  }
-
-  return ctx->write(ctx, &f, sizeof(float));
+  return ctx->write(ctx, &swapped, sizeof(float));
 }
 
 bool cmp_write_double(cmp_ctx_t *ctx, double d) {
   if (!write_type_marker(ctx, DOUBLE_MARKER))
     return false;
 
-  /* Same deal for doubles */
-  if (!is_bigendian()) {
-    char swapped[sizeof(double)];
-    char *dbuf = (char *)&d;
-    size_t i;
+  CFSwappedFloat64 swapped = CFConvertDoubleHostToSwapped(d);
 
-    for (i = 0; i < sizeof(double); i++)
-      swapped[i] = dbuf[sizeof(double) - i - 1];
-
-    return ctx->write(ctx, swapped, sizeof(double));
-  }
-
-  return ctx->write(ctx, &d, sizeof(double));
+  return ctx->write(ctx, &swapped, sizeof(double));
 }
 
 bool cmp_write_decimal(cmp_ctx_t *ctx, double d) {
@@ -1030,7 +914,7 @@ bool cmp_write_str16_marker(cmp_ctx_t *ctx, uint16_t size) {
   if (!write_type_marker(ctx, STR16_MARKER))
     return false;
 
-  size = be16(size);
+  size = CFSwapInt16HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint16_t)))
     return true;
@@ -1057,7 +941,7 @@ bool cmp_write_str32_marker(cmp_ctx_t *ctx, uint32_t size) {
   if (!write_type_marker(ctx, STR32_MARKER))
     return false;
 
-  size = be32(size);
+  size = CFSwapInt32HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint32_t)))
     return true;
@@ -1149,7 +1033,7 @@ bool cmp_write_bin16_marker(cmp_ctx_t *ctx, uint16_t size) {
   if (!write_type_marker(ctx, BIN16_MARKER))
     return false;
 
-  size = be16(size);
+  size = CFSwapInt16HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint16_t)))
     return true;
@@ -1176,7 +1060,7 @@ bool cmp_write_bin32_marker(cmp_ctx_t *ctx, uint32_t size) {
   if (!write_type_marker(ctx, BIN32_MARKER))
     return false;
 
-  size = be32(size);
+  size = CFSwapInt32HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint32_t)))
     return true;
@@ -1229,7 +1113,7 @@ bool cmp_write_array16(cmp_ctx_t *ctx, uint16_t size) {
   if (!write_type_marker(ctx, ARRAY16_MARKER))
     return false;
 
-  size = be16(size);
+  size = CFSwapInt16HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint16_t)))
     return true;
@@ -1242,7 +1126,7 @@ bool cmp_write_array32(cmp_ctx_t *ctx, uint32_t size) {
   if (!write_type_marker(ctx, ARRAY32_MARKER))
     return false;
 
-  size = be32(size);
+  size = CFSwapInt32HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint32_t)))
     return true;
@@ -1272,7 +1156,7 @@ bool cmp_write_map16(cmp_ctx_t *ctx, uint16_t size) {
   if (!write_type_marker(ctx, MAP16_MARKER))
     return false;
 
-  size = be16(size);
+  size = CFSwapInt16HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint16_t)))
     return true;
@@ -1285,7 +1169,7 @@ bool cmp_write_map32(cmp_ctx_t *ctx, uint32_t size) {
   if (!write_type_marker(ctx, MAP32_MARKER))
     return false;
 
-  size = be32(size);
+  size = CFSwapInt32HostToBig(size);
 
   if (ctx->write(ctx, &size, sizeof(uint32_t)))
     return true;
@@ -1444,7 +1328,7 @@ bool cmp_write_ext16_marker(cmp_ctx_t *ctx, int8_t type, uint16_t size) {
   if (!write_type_marker(ctx, EXT16_MARKER))
     return false;
 
-  size = be16(size);
+  size = CFSwapInt16HostToBig(size);
 
   if (!ctx->write(ctx, &size, sizeof(uint16_t))) {
     ctx->error = LENGTH_WRITING_ERROR;
@@ -1473,7 +1357,7 @@ bool cmp_write_ext32_marker(cmp_ctx_t *ctx, int8_t type, uint32_t size) {
   if (!write_type_marker(ctx, EXT32_MARKER))
     return false;
 
-  size = be32(size);
+  size = CFSwapInt32HostToBig(size);
 
   if (!ctx->write(ctx, &size, sizeof(uint32_t))) {
     ctx->error = LENGTH_WRITING_ERROR;
