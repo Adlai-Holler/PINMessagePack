@@ -4,7 +4,10 @@ Pod::Spec.new do |s|
   s.summary          = "A fast, streaming Objective-C MessagePack decoder"
   s.homepage         = "https://github.com/Adlai-Holler/PINMessagePack"
   s.author           = { "Adlai Holler" => "adlai@pinterest.com" }
-  s.license          = "Proprietary"
+  s.license          = { :type => "Proprietary", :text => <<-LICENSE
+    Under development and not licensed.
+    LICENSE
+  }
   s.source           = { :git => "https://github.com/Adlai-Holler/PINMessagePack.git", :tag => s.version.to_s }
 
   s.ios.deployment_target = "9.0"
