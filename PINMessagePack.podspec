@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "PINMessagePack"
-  s.version          = "0.1.0"
+  s.version          = "0.2.0"
   s.summary          = "A fast, streaming Objective-C MessagePack decoder"
   s.homepage         = "https://github.com/Adlai-Holler/PINMessagePack"
   s.author           = { "Adlai Holler" => "adlai@pinterest.com" }
