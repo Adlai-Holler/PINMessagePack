@@ -9,24 +9,21 @@
 #import <Foundation/Foundation.h>
 #import <PINMessagePack/PINStreamingDecoding.h>
 
+@class PINBuffer;
+
 NS_ASSUME_NONNULL_BEGIN
 
 /**
  * Objects of this class are not thread-safe, and must be paired with a lock to
  * be accessed from multiple threads.
- *
- * Unpackers take responsibility for opening and closing their input streams.
  */
 __attribute__((objc_subclassing_restricted))
 @interface PINMessageUnpacker : NSObject<PINStreamingDecoder>
 
 /**
- * Initialize an unpacker using the given input stream.
- *
- * The input stream must not be opened. The input stream will be closed
- * when the unpacker is deallocated.
+ * Initialize an unpacker using the given buffer.
  */
-- (instancetype)initWithInputStream:(NSInputStream *)inputStream NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithBuffer:(PINBuffer *)buffer NS_DESIGNATED_INITIALIZER;
 
 #pragma mark - Unavailable
 

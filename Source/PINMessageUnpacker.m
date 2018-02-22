@@ -10,6 +10,7 @@
 #import "cmp.h"
 #import "PINMessagePackError.h"
 #import "PINCollections.h"
+#import "PINBuffer.h"
 
 // Determined experimentally on iOS 11.2
 // If this value is wrong, we'll see a teeny-tiny performance penalty.
@@ -35,40 +36,22 @@
 
 @implementation PINMessageUnpacker {
   cmp_ctx_t _cmpContext;
-  NSInputStream *_inputStream;
+  PINBuffer *_buffer;
   
-  NSMutableData *_buf;
   uint32_t _pendingMapCount;
 }
 
 static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
-  // CFReadStream will block until at least 1 byte is available, but it
-  // won't block until "limit" is available. So we read in a loop, continually
-  // reading until we get as many bytes as we want, or there's an error (-1),
-  // or the stream ends (0).
-  CFReadStreamRef stream = (CFReadStreamRef)ctx->buf;
-  CFIndex totalCount = 0;
-  while (totalCount < limit) {
-    CFIndex nextChunk = limit - totalCount;
-    CFIndex count = CFReadStreamRead(stream, data + totalCount, nextChunk);
-    if (count == 0 || count == -1) {
-      return false;
-    }
-    totalCount += count;
-  }
+  __unsafe_unretained PINBuffer *buffer = (__bridge PINBuffer *)ctx->buf;
+  [buffer read:data length:limit];
   return true;
 }
 
-- (instancetype)initWithInputStream:(NSInputStream *)inputStream
+- (instancetype)initWithBuffer:(PINBuffer *)buffer
 {
-  NSParameterAssert(inputStream.streamStatus == NSStreamStatusNotOpen);
-  
   if (self = [super init]) {
-    _inputStream = inputStream;
-    [_inputStream open];
-    cmp_init(&_cmpContext, (__bridge CFReadStreamRef)inputStream, stream_reader, NULL, NULL);
-    static NSUInteger const kInitialBufferLength = 64;
-    _buf = [NSMutableData dataWithLength:kInitialBufferLength];
+    _buffer = buffer;
+    cmp_init(&_cmpContext, (__bridge void *)buffer, stream_reader, NULL, NULL);
   }
   return self;
 }
@@ -80,11 +63,6 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     return [NSError errorWithDomain:PINMessagePackErrorDomain code:error userInfo:@{ NSDebugDescriptionErrorKey: @(cmp_strerror(&_cmpContext))}];
   }
   return nil;
-}
-
-- (void)dealloc
-{
-  [_inputStream close];
 }
 
 - (NSInteger)decodeInteger
@@ -104,41 +82,6 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     }
     return (NSInteger)v;
   }
-}
-
-- (char *)decodeCStringWithReturnedLength:(NSUInteger *)lengthPtr
-{
-  cmp_object_t o;
-  if (!cmp_read_object(&_cmpContext, &o)) {
-    CHECK_ERROR();
-    *lengthPtr = 0;
-    return "";
-  }
-  
-  uint32_t len;
-  switch (o.type) {
-    case CMP_TYPE_STR8:
-    case CMP_TYPE_STR16:
-    case CMP_TYPE_STR32:
-    case CMP_TYPE_FIXSTR:
-      len = o.as.str_size;
-      break;
-    default:
-      SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
-      return nil;
-  }
-  uint32_t bufSize = len + 1;
-  if (bufSize > _buf.length) {
-    _buf.length = bufSize;
-  }
-  void *bufPtr = _buf.mutableBytes;
-  if (!cmp_object_to_str(&_cmpContext, &o, bufPtr, bufSize)) {
-    CHECK_ERROR();
-    *lengthPtr = 0;
-    return "";
-  }
-  *lengthPtr = len;
-  return bufPtr;
 }
 
 - (id)decodeObjectOfClass:(Class)class NS_RETURNS_RETAINED

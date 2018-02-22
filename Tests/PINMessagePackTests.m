@@ -12,9 +12,9 @@
 
 static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 {
-  CFWriteStreamRef w = (CFWriteStreamRef)ctx->buf;
-  CFIndex result = CFWriteStreamWrite(w, data, count);
-  return (size_t)result;
+  __unsafe_unretained PINBuffer *buf = (__bridge PINBuffer *)ctx->buf;
+  [buf writeData:[NSData dataWithBytes:data length:count]];
+  return count;
 }
 
 @interface PINMessagePackTests : XCTestCase
@@ -29,21 +29,15 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 
 - (void)setUp {
   [super setUp];
-  NSInputStream *input;
-  NSOutputStream *lclOutputStream;
-  [NSStream getBoundStreamsWithBufferSize:1048576 inputStream:&input outputStream:&lclOutputStream];
-  outputStream = lclOutputStream;
-  // Create writer
-  [lclOutputStream open];
-  cmp_init(&writeCtx, (__bridge void *)outputStream, NULL, NULL, stream_writer);
+  PINBuffer *buffer = [[PINBuffer alloc] init];
+  cmp_init(&writeCtx, (__bridge void *)buffer, NULL, NULL, stream_writer);
   // Create reader
-  u = [[PINMessageUnpacker alloc] initWithInputStream:input];
+  u = [[PINMessageUnpacker alloc] initWithBuffer:buffer];
 }
 
 - (void)tearDown
 {
   [super tearDown];
-  [outputStream close];
 }
 
 - (void)testAnInteger {
@@ -54,17 +48,6 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   
   NSInteger v = [u decodeInteger];
   XCTAssertEqual(v, wrote);
-  XCTAssertNil(u.error);
-}
-
-- (void)testAString {
-  char wrote[] = "Hello, world";
-  XCTAssertTrue(cmp_write_str(&writeCtx, wrote, 12));
-  
-  NSUInteger l;
-  char *str = [u decodeCStringWithReturnedLength:&l];
-  XCTAssertEqualObjects(@(wrote), @(str));
-  XCTAssertEqual(l, 12);
   XCTAssertNil(u.error);
 }
 

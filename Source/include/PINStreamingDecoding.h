@@ -55,14 +55,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSInteger)decodeInteger;
 
 /**
- * Returned pointer is mutable but only valid until next call to the same method.
- *
- * This is useful to avoid creating NSStrings for keys inside your
- * implementation of -initWithStreamingDecoder:.
- */
-- (char *)decodeCStringWithReturnedLength:(NSUInteger *)lengthPtr NS_RETURNS_INNER_POINTER;
-
-/**
  * Decode an object of the given class.
  *
  * For arrays, sets, and dictionaries you should prefer -decodeArray et al.
