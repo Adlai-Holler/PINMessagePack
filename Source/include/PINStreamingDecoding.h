@@ -32,7 +32,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, nullable, copy, readonly) NSError *error;
 
 /**
+ * A fast way to enumerate keys in an encoded map.
  *
+ * Useful for directly decoding messagepack into an object in
+ * your -initWithStreamingDecoder implementation.
  */
 - (void)enumerateKeysInMapWithBlock:(void (^NS_NOESCAPE)(const char *key, NSUInteger keyLen))block;
 

@@ -252,36 +252,40 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       return (id)(o.as.boolean ? kCFBooleanTrue : kCFBooleanFalse);
     case CMP_TYPE_DOUBLE:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.dbl);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &o.as.dbl);
     case CMP_TYPE_FLOAT:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.flt);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &o.as.flt);
     case CMP_TYPE_POSITIVE_FIXNUM:
     case CMP_TYPE_NEGATIVE_FIXNUM:
     case CMP_TYPE_SINT8:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.s8);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt8Type, &o.as.s8);
     case CMP_TYPE_SINT16:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.s16);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.s16);
     case CMP_TYPE_SINT32:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.s32);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.s32);
     case CMP_TYPE_SINT64:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.s64);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.s64);
     case CMP_TYPE_UINT8:
+      // NOTE about unsigned types. Since CFNumber doesn't support unsigned values,
+      // we mimic NSNumber and store them in the next-largest signed type. U64
+      // is handled specially.
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.u8);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.u8);
     case CMP_TYPE_UINT16:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.u16);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.u16);
     case CMP_TYPE_UINT32:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.u32);
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u32);
     case CMP_TYPE_UINT64:
       ENSURE_CLASS(class, numberClass);
-      return @(o.as.u64);
+      // Yep, NSNumber does this too. Just pass it as signed64 and rely on them to read it in unsigned form.
+      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u64);
     default:
       NSCAssert(NO, @"Failed to map.");
       return nil;
