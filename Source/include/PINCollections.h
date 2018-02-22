@@ -19,7 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
  * of 
  */
 + (NSArray *)pin_arrayWithRetainedObjects:(CFTypeRef _Nonnull [_Nonnull])objects
-                                    count:(NSUInteger)count;
+                                    count:(NSUInteger)count NS_RETURNS_RETAINED;
 
 @end
 
@@ -27,15 +27,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (NSDictionary *)pin_dictionaryWithRetainedObjects:(CFTypeRef _Nonnull [_Nonnull])objects
                                                keys:(CFTypeRef _Nonnull [_Nonnull])keys
-                                              count:(NSUInteger)count;
+                                              count:(NSUInteger)count NS_RETURNS_RETAINED;
 
 @end
 
 @interface NSSet (PINCollection)
 
 + (NSSet *)pin_setWithRetainedObjects:(CFTypeRef _Nonnull [_Nonnull])objects
-                                count:(NSUInteger)count;
+                                count:(NSUInteger)count NS_RETURNS_RETAINED;
 
 @end
 
 NS_ASSUME_NONNULL_END
+

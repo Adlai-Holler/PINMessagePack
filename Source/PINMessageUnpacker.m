@@ -141,13 +141,13 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   return bufPtr;
 }
 
-- (id)decodeObjectOfClass:(Class)class
+- (id)decodeObjectOfClass:(Class)class NS_RETURNS_RETAINED
 {
   NSParameterAssert(class != Nil);
   return [self _decodeObjectOfClass:class allowNull:NO];
 }
 
-- (id)_decodeObjectOfClass:(Class)class allowNull:(BOOL)allowNull
+- (id)_decodeObjectOfClass:(Class)class allowNull:(BOOL)allowNull NS_RETURNS_RETAINED
 {
   static Class numberClass;
   static Class stringClass;
@@ -187,7 +187,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       ENSURE_CLASS(class, stringClass);
       uint32_t len = o.as.str_size;
       uint32_t bufSize = len + 1;
-
+      
 #ifdef TAGGED_PTR_STRING_MAX_LEN
       // If it's a short string, skip the heap and stay on the stack
       // hoping for the system to use a tagged pointer.
@@ -229,7 +229,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
         free(data);
         return nil;
       }
-      return [NSData dataWithBytesNoCopy:data length:size];
+      return [[NSData alloc] initWithBytesNoCopy:data length:size];
     }
     case CMP_TYPE_ARRAY16:
     case CMP_TYPE_ARRAY32:
@@ -288,7 +288,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   }
 }
 
-- (NSArray *)decodeArrayOfClass:(Class)class
+- (NSArray *)decodeArrayOfClass:(Class)class NS_RETURNS_RETAINED
 {
   uint32_t count;
   if (!cmp_read_array(&_cmpContext, &count)) {
@@ -298,7 +298,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   return [self _decodeArrayOrSet:NO count:count class:class];
 }
 
-- (NSSet *)decodeSetOfClass:(Class)class
+- (NSSet *)decodeSetOfClass:(Class)class NS_RETURNS_RETAINED
 {
   uint32_t count;
   if (!cmp_read_array(&_cmpContext, &count)) {
@@ -308,7 +308,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   return [self _decodeArrayOrSet:YES count:count class:class];
 }
 
-- (id)_decodeArrayOrSet:(BOOL)isSet count:(NSUInteger)count class:(Class)class
+- (id)_decodeArrayOrSet:(BOOL)isSet count:(NSUInteger)count class:(Class)class NS_RETURNS_RETAINED
 {
   CFTypeRef vals[count];
   for (NSUInteger i = 0; i < count; i++) {
@@ -327,7 +327,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   }
 }
 
-- (NSDictionary *)decodeDictionaryWithKeyClass:(Class)keyClass objectClass:(Class)objectClass
+- (NSDictionary *)decodeDictionaryWithKeyClass:(Class)keyClass objectClass:(Class)objectClass NS_RETURNS_RETAINED
 {
   uint32_t count;
   if (!cmp_read_map(&_cmpContext, &count)) {
@@ -338,7 +338,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   return [self _decodeDictionaryWithCount:count keyClass:keyClass objectClass:objectClass];
 }
 
-- (NSDictionary *)_decodeDictionaryWithCount:(NSUInteger)count keyClass:(Class)keyClass objectClass:(Class)objectClass
+- (NSDictionary *)_decodeDictionaryWithCount:(NSUInteger)count keyClass:(Class)keyClass objectClass:(Class)objectClass NS_RETURNS_RETAINED
 {
   CFTypeRef keys[count];
   CFTypeRef vals[count];

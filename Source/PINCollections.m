@@ -57,15 +57,15 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
 @implementation NSArray (PINCollection)
 
 + (NSArray *)pin_arrayWithRetainedObjects:(CFTypeRef[])objects
-                                    count:(NSUInteger)count
+                                    count:(NSUInteger)count NS_RETURNS_RETAINED
 {
   // NSArrayZero singleton.
   if (count == 0) {
-    return @[];
+    return [[NSArray alloc] init];
   }
   // NSSingleObjectArray specialization.
   if (count == 1) {
-    return @[ (__bridge_transfer id)objects[0] ];
+    return [[NSArray alloc] initWithObjects:(__bridge_transfer id)objects[0], nil];
   }
   static CFArrayCallBacks cb;
   static dispatch_once_t onceToken;
@@ -74,24 +74,24 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
     cb.retain = PINRetainCallback;
   });
   PINSkipRetainFlag(PINFlagSet);
-  NSArray *result = (__bridge NSArray *)CFArrayCreate(kCFAllocatorDefault, objects, count, &cb);
+  CFArrayRef result = CFArrayCreate(kCFAllocatorDefault, objects, count, &cb);
   PINSkipRetainFlag(PINFlagClear);
-  return result;
+  return (__bridge_transfer NSArray *)result;
 }
 
 @end
 
 @implementation NSDictionary (PINCollection)
 
-+ (NSDictionary *)pin_dictionaryWithRetainedObjects:(CFTypeRef  _Nonnull [])objects keys:(CFTypeRef  _Nonnull [])keys count:(NSUInteger)count
++ (NSDictionary *)pin_dictionaryWithRetainedObjects:(CFTypeRef  _Nonnull [])objects keys:(CFTypeRef  _Nonnull [])keys count:(NSUInteger)count NS_RETURNS_RETAINED
 {
   // NSDictionaryZero singleton.
   if (count == 0) {
-    return @{};
+    return [[NSDictionary alloc] init];
   }
   // NSSingleObjectDictionary specialization.
   if (count == 1) {
-    return @{ (__bridge_transfer id)keys[0]: (__bridge_transfer id)objects[0] };
+    return [[NSDictionary alloc] initWithObjectsAndKeys:(__bridge_transfer id)objects[0], (__bridge_transfer id)keys[0], nil];
   }
   
   static CFDictionaryKeyCallBacks kCb;
@@ -105,24 +105,24 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
   });
   
   PINSkipRetainFlag(PINFlagSet);
-  NSDictionary *result = (__bridge NSDictionary *)CFDictionaryCreate(kCFAllocatorDefault, keys, objects, count, &kCb, &vCb);
+  CFDictionaryRef result = CFDictionaryCreate(kCFAllocatorDefault, keys, objects, count, &kCb, &vCb);
   PINSkipRetainFlag(PINFlagClear);
-  return result;
+  return (__bridge_transfer NSDictionary *)result;
 }
 
 @end
 
 @implementation NSSet (PINCollection)
 
-+ (NSSet *)pin_setWithRetainedObjects:(CFTypeRef  _Nonnull [])objects count:(NSUInteger)count
++ (NSSet *)pin_setWithRetainedObjects:(CFTypeRef  _Nonnull [])objects count:(NSUInteger)count NS_RETURNS_RETAINED
 {
   // NSSetZero singleton.
   if (count == 0) {
-    return [NSSet set];
+    return [[NSSet alloc] init];
   }
   // NSSingleObjectSet specialization.
   if (count == 1) {
-    return [NSSet setWithObject:(__bridge_transfer id)objects[0]];
+    return [[NSSet alloc] initWithObjects:(__bridge_transfer id)objects[0], nil];
   }
   static CFSetCallBacks cb;
   static dispatch_once_t onceToken;
@@ -131,9 +131,9 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
     cb.retain = PINRetainCallback;
   });
   PINSkipRetainFlag(PINFlagSet);
-  NSSet *result = (__bridge NSSet *)CFSetCreate(kCFAllocatorDefault, objects, count, &cb);
+  CFSetRef result = CFSetCreate(kCFAllocatorDefault, objects, count, &cb);
   PINSkipRetainFlag(PINFlagClear);
-  return result;
+  return (__bridge_transfer NSSet *)result;
 }
 
 @end
