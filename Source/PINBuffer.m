@@ -31,9 +31,9 @@
 {
   if (self = [super init]) {
     int result = pthread_cond_init(&_cond, NULL);
-    NSAssert(result == noErr, @"Failed to create condition.");
+    NSAssert(result == noErr, @"Failed to create condition: %s", strerror(result));
     result = pthread_mutex_init(&_mutex, NULL);
-    NSAssert(result == noErr, @"Failed to create mutex.");
+    NSAssert(result == noErr, @"Failed to create mutex: %s", strerror(result));
     _datas = [NSMutableArray array];
   }
   return self;
@@ -42,9 +42,9 @@
 - (void)dealloc
 {
   int result = pthread_mutex_destroy(&_mutex);
-  NSCAssert(result == noErr, @"error destroying mutex");
+  NSCAssert(result == noErr, @"error destroying mutex: %s", strerror(result));
   result = pthread_cond_destroy(&_cond);
-  NSCAssert(result == noErr, @"error destroying cond");
+  NSCAssert(result == noErr, @"error destroying cond: %s", strerror(result));
 }
 
 - (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len
