@@ -61,6 +61,7 @@
       _index = NSMaxRange(range);
     }
     needed -= range.length;
+    buffer += range.length;
     
     // If we ran out of datas, unlock so that the writer can give us more.
     if (_dataCount == 0) {
