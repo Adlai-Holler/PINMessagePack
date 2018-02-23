@@ -58,7 +58,7 @@
         while (_dataCount == 0 && !_closed) {
           pthread_cond_wait(&_cond, &_mutex);
         }
-        if (_closed) {
+        if (_dataCount == 0 && _closed) {
           pthread_mutex_unlock(&_mutex);
           return NO;
         }
