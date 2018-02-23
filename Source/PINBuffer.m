@@ -78,11 +78,12 @@
 
 - (void)writeData:(NSData *)data
 {
+  NSData *copy = [data copy];
   pthread_mutex_lock(&_mutex);
-  _datas[_dataCount] = data;
+  _datas[_dataCount] = copy;
   if (_dataCount == 0) {
-    _firstData = data;
-    _firstDataLength = data.length;
+    _firstData = copy;
+    _firstDataLength = copy.length;
     pthread_cond_signal(&_cond);
   }
   _dataCount += 1;
