@@ -59,6 +59,7 @@
           pthread_cond_wait(&_cond, &_mutex);
         }
         if (_closed) {
+          pthread_mutex_unlock(&_mutex);
           return NO;
         }
         _reader_data = [_datas objectAtIndex:0];
