@@ -82,9 +82,9 @@
   if (_dataCount == 0) {
     _firstData = data;
     _firstDataLength = data.length;
+    pthread_cond_signal(&_cond);
   }
   _dataCount += 1;
-  pthread_cond_signal(&_cond);
   pthread_mutex_unlock(&_mutex);
 }
 
