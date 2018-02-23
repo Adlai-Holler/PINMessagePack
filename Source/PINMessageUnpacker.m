@@ -43,8 +43,7 @@
 
 static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   __unsafe_unretained PINBuffer *buffer = (__bridge PINBuffer *)ctx->buf;
-  [buffer read:data length:limit];
-  return true;
+  return (bool)[buffer read:data length:limit];
 }
 
 - (instancetype)initWithBuffer:(PINBuffer *)buffer

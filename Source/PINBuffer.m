@@ -24,6 +24,7 @@
   // Accessed from both threads – guarded by mutex.
   NSMutableArray<NSData *> *_datas;
   NSUInteger _dataCount;
+  BOOL _closed;
 }
 
 - (instancetype)init
@@ -38,7 +39,7 @@
   return self;
 }
 
-- (void)read:(uint8_t *)buffer length:(NSUInteger)len
+- (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len
 {
   NSUInteger needed = len;
   while (needed > 0) {
@@ -46,8 +47,11 @@
     // Get a data if we don't have one.
     if (_reader_data == nil) {
       pthread_mutex_lock(&_mutex); {
-        while (_dataCount == 0) {
+        while (_dataCount == 0 && !_closed) {
           pthread_cond_wait(&_cond, &_mutex);
+        }
+        if (_closed) {
+          return NO;
         }
         _reader_data = [_datas objectAtIndex:0];
       }
@@ -79,17 +83,28 @@
     needed -= range.length;
     buffer += range.length;
   }
+  return YES;
 }
 
 - (void)writeData:(NSData *)data
 {
   NSData *copy = [data copy];
   pthread_mutex_lock(&_mutex); {
+    NSCAssert(!_closed, @"Writing after closing PINBuffer.");
     _datas[_dataCount] = copy;
     if (_dataCount == 0) {
       pthread_cond_signal(&_cond);
     }
     _dataCount += 1;
+  }
+  pthread_mutex_unlock(&_mutex);
+}
+
+- (void)close
+{
+  pthread_mutex_lock(&_mutex); {
+    _closed = YES;
+    pthread_cond_signal(&_cond);
   }
   pthread_mutex_unlock(&_mutex);
 }

@@ -23,8 +23,10 @@ __attribute__((objc_subclassing_restricted))
 
 /**
  * Reads `len` bytes, blocking if needed.
+ *
+ * Returns YES if the read succeeded, or NO if the buffer closed before providing the data.
  */
-- (void)read:(uint8_t *)buffer length:(NSUInteger)len;
+- (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len;
 
 /**
  * Writes a chunk of data.
@@ -36,6 +38,11 @@ __attribute__((objc_subclassing_restricted))
  * not maintain its own contiguous buffer.
  */
 - (void)writeData:(NSData *)data;
+
+/**
+ * Indicate that no more data will be put into the buffer.
+ */
+- (void)close;
 
 @end
 
