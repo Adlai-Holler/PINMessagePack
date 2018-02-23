@@ -10,6 +10,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSInteger, PINBufferState) {
+  PINBufferStateNormal,
+  PINBufferStateError,
+  PINBufferStateCompleted
+};
+
 /**
  * An efficient data buffer built on top of dispatch_data.
  *
@@ -20,6 +26,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 __attribute__((objc_subclassing_restricted))
 @interface PINBuffer : NSObject
+
+/**
+ * The current state of the buffer.
+ */
+@property (atomic, readonly) PINBufferState state;
 
 /**
  * Reads `len` bytes, blocking if needed.
@@ -41,8 +52,11 @@ __attribute__((objc_subclassing_restricted))
 
 /**
  * Indicate that no more data will be put into the buffer.
+ *
+ * YES indicates that the entire expected message was written,
+ * NO indicates that an error/cancellation occurred.
  */
-- (void)close;
+- (void)closeCompleted:(BOOL)completed;
 
 @end
 

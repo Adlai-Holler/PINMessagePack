@@ -22,15 +22,11 @@
 #define TAGGED_PTR_STRING_MAX_LEN 9
 #endif
 
-#define CHECK_ERROR() NSCAssert(0 == (&_cmpContext)->error, @"Decoding error: %@", self.error);
-
-#define SET_AND_REPORT_ERROR(code) (&_cmpContext)->error = code; CHECK_ERROR();
-
 /// Checks that the class is either Nil or the specified one.
 /// On fail, report error and return nil.
 #define ENSURE_CLASS(c, e) \
   if (c && c != e) { \
-    SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType); \
+    [self failWithErrorCode:PINMessagePackErrorInvalidType]; \
     return nil; \
   }
 
@@ -64,19 +60,45 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
   return nil;
 }
 
+/// Most of the time, pass NSNotFound to indicate that the error should be read from CMP.
+/// Only pass an error code if the error happened in our layer.
+- (void)failWithErrorCode:(NSInteger)errorCode
+{
+  if (errorCode != NSNotFound) {
+    (&_cmpContext)->error = errorCode;
+  } else {
+    errorCode = (&_cmpContext)->error;
+  }
+  
+  switch (errorCode) {
+    case PINMessagePackErrorReadingData:
+    case PINMessagePackErrorReadingLength:
+    case PINMessagePackErrorReadingExtType:
+    case PINMessagePackErrorReadingTypeMarker:
+      // For errors reading, check if the buffer was interrupted.
+      // If so, there was probably an I/O error and we shouldn't assert.
+      if (_buffer.state == PINBufferStateError) {
+        return;
+      }
+    default:
+      NSCAssert(NO, @"MessagePack parsing error: %s", cmp_strerror(&_cmpContext));
+      break;
+  }
+}
+
 - (NSInteger)decodeInteger
 {
   if (sizeof(NSInteger) == sizeof(int64_t)) {
     int64_t v;
     if (!cmp_read_long(&_cmpContext, &v)) {
-      CHECK_ERROR();
+      [self failWithErrorCode:NSNotFound];
       return 0;
     }
     return (NSInteger)v;
   } else {
     int32_t v;
     if (!cmp_read_int(&_cmpContext, &v)) {
-      CHECK_ERROR();
+      [self failWithErrorCode:NSNotFound];
       return 0;
     }
     return (NSInteger)v;
@@ -136,7 +158,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       if (len <= TAGGED_PTR_STRING_MAX_LEN) {
         char buf[bufSize];
         if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
-          CHECK_ERROR();
+          [self failWithErrorCode:NSNotFound];
           return nil;
         }
         return [[NSString alloc] initWithBytes:buf length:len encoding:NSUTF8StringEncoding];
@@ -146,14 +168,14 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       char *buf = malloc(bufSize);
       NSString *result;
       if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
-        CHECK_ERROR();
+        [self failWithErrorCode:NSNotFound];
         free(buf);
         return nil;
       }
       
       result = [[NSString alloc] initWithBytesNoCopy:buf length:len encoding:NSUTF8StringEncoding freeWhenDone:YES];
       if (result == nil) {
-        SET_AND_REPORT_ERROR(PINMessagePackInternalError);
+        [self failWithErrorCode:PINMessagePackInternalError];
         free(buf);
         return nil;
       }
@@ -167,7 +189,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       uint32_t size = o.as.bin_size;
       void *data = malloc(size);
       if (!cmp_object_to_bin(&_cmpContext, &o, data, size)) {
-        CHECK_ERROR();
+        [self failWithErrorCode:NSNotFound];
         free(data);
         return nil;
       }
@@ -181,7 +203,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       } else if (class == setClass) {
         return [self _decodeArrayOrSet:YES count:o.as.array_size class:Nil];
       } else {
-        SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return nil;
       }
     case CMP_TYPE_MAP16:
@@ -238,7 +260,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   uint32_t count;
   if (!cmp_read_array(&_cmpContext, &count)) {
-    CHECK_ERROR();
+    [self failWithErrorCode:NSNotFound];
     return nil;
   }
   return [self _decodeArrayOrSet:NO count:count class:class];
@@ -248,7 +270,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   uint32_t count;
   if (!cmp_read_array(&_cmpContext, &count)) {
-    CHECK_ERROR();
+    [self failWithErrorCode:NSNotFound];
     return nil;
   }
   return [self _decodeArrayOrSet:YES count:count class:class];
@@ -277,7 +299,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   uint32_t count;
   if (!cmp_read_map(&_cmpContext, &count)) {
-    CHECK_ERROR();
+    [self failWithErrorCode:NSNotFound];
     return nil;
   }
   
@@ -316,7 +338,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   cmp_object_t o;
   if (!cmp_read_object(&_cmpContext, &o)) {
-    CHECK_ERROR();
+    [self failWithErrorCode:NSNotFound];
     return 0;
   }
   switch (o.type) {
@@ -325,7 +347,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     case CMP_TYPE_FLOAT:
       return (double)o.as.flt;
     default:
-      SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+      [self failWithErrorCode:PINMessagePackErrorInvalidType];
       return 0;
   }
 }
@@ -334,7 +356,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   bool b;
   if (!cmp_read_bool(&_cmpContext, &b)) {
-    CHECK_ERROR();
+    [self failWithErrorCode:NSNotFound];
     return NO;
   }
   return (BOOL)b;
@@ -346,7 +368,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     c = _pendingMapCount;
   } else {
     if (!cmp_read_map(&_cmpContext, &c)) {
-      CHECK_ERROR();
+      [self failWithErrorCode:NSNotFound];
       return;
     }
   }
@@ -363,14 +385,14 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
         uint32_t len = o.as.str_size;
         char key[len+1];
         if (!cmp_object_to_str(&_cmpContext, &o, key, len+1)) {
-          CHECK_ERROR();
+          [self failWithErrorCode:NSNotFound];
           return;
         }
         block(key, len);
         break;
       }
       default:
-        SET_AND_REPORT_ERROR(PINMessagePackErrorInvalidType);
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return;
     }
   }

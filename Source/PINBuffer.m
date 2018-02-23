@@ -8,14 +8,19 @@
 
 #import "PINBuffer.h"
 #import <pthread/pthread.h>
+#import <stdatomic.h>
 
 @interface PINBuffer ()
 @end
 
 @implementation PINBuffer {
+  // Fixed
   pthread_cond_t _cond;
   pthread_mutex_t _mutex;
 
+  // Atomic
+  _Atomic(PINBufferState) _state;
+  
   // Only accessed from the reader thread. The current data.
   __unsafe_unretained NSData *_reader_data;
   NSUInteger _reader_dataLength;
@@ -24,7 +29,6 @@
   // Accessed from both threads – guarded by mutex.
   NSMutableArray<NSData *> *_datas;
   NSUInteger _dataCount;
-  BOOL _closed;
 }
 
 - (instancetype)init
@@ -55,14 +59,18 @@
     // Get a data if we don't have one.
     if (_reader_data == nil) {
       pthread_mutex_lock(&_mutex); {
-        while (_dataCount == 0 && !_closed) {
+        // While we're open and have no data, wait.
+        while (_dataCount == 0 && self.state == PINBufferStateNormal) {
           pthread_cond_wait(&_cond, &_mutex);
         }
-        if (_dataCount == 0 && _closed) {
+        
+        // We have data and/or we're closed. Handle each case.
+        if (_dataCount > 0) {
+          _reader_data = [_datas objectAtIndex:0];
+        } else {
           pthread_mutex_unlock(&_mutex);
           return NO;
         }
-        _reader_data = [_datas objectAtIndex:0];
       }
       pthread_mutex_unlock(&_mutex);
       _reader_dataLength = _reader_data.length;
@@ -99,7 +107,7 @@
 {
   NSData *copy = [data copy];
   pthread_mutex_lock(&_mutex); {
-    NSCAssert(!_closed, @"Writing after closing PINBuffer.");
+    NSCAssert(self.state == PINBufferStateNormal, @"Writing after closing PINBuffer.");
     _datas[_dataCount] = copy;
     if (_dataCount == 0) {
       pthread_cond_signal(&_cond);
@@ -109,13 +117,18 @@
   pthread_mutex_unlock(&_mutex);
 }
 
-- (void)close
+- (void)closeCompleted:(BOOL)completed
 {
-  pthread_mutex_lock(&_mutex); {
-    _closed = YES;
-    pthread_cond_signal(&_cond);
-  }
+  NSCAssert(self.state == PINBufferStateNormal, @"Cannot close already-closed buffer.");
+  pthread_mutex_lock(&_mutex);
+  atomic_store(&_state, completed ? PINBufferStateCompleted : PINBufferStateError);
+  pthread_cond_signal(&_cond);
   pthread_mutex_unlock(&_mutex);
+}
+
+- (PINBufferState)state
+{
+  return atomic_load(&_state);
 }
 
 @end
