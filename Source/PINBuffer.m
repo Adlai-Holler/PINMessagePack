@@ -15,12 +15,14 @@
 @implementation PINBuffer {
   pthread_cond_t _cond;
   pthread_mutex_t _mutex;
-  // How far into the first data we are.
-  NSUInteger _index;
+
+  // Only accessed from the reader thread. The current data.
+  __unsafe_unretained NSData *_reader_data;
+  NSUInteger _reader_dataLength;
+  NSUInteger _reader_index;
   
+  // Accessed from both threads – guarded by mutex.
   NSMutableArray<NSData *> *_datas;
-  __unsafe_unretained NSData *_firstData;
-  NSUInteger _firstDataLength;
   NSUInteger _dataCount;
 }
 
@@ -39,54 +41,56 @@
 - (void)read:(uint8_t *)buffer length:(NSUInteger)len
 {
   NSUInteger needed = len;
-  BOOL haveLock = NO;
   while (needed > 0) {
-    if (!haveLock) {
-      pthread_mutex_lock(&_mutex);
-      while (_firstData == nil) {
-        pthread_cond_wait(&_cond, &_mutex);
+    
+    // Get a data if we don't have one.
+    if (_reader_data == nil) {
+      pthread_mutex_lock(&_mutex); {
+        while (_dataCount == 0) {
+          pthread_cond_wait(&_cond, &_mutex);
+        }
+        _reader_data = [_datas objectAtIndex:0];
       }
-      haveLock = YES;
+      pthread_mutex_unlock(&_mutex);
+      _reader_dataLength = _reader_data.length;
     }
-    NSUInteger available = _firstDataLength - _index;
-    NSRange range = NSMakeRange(_index, MIN(needed, available));
-    [_firstData getBytes:buffer range:range];
-    if (range.length == available) {
-      [_datas removeObjectAtIndex:0];
-      _dataCount -= 1;
-      _firstData = _dataCount ? [_datas objectAtIndex:0] : nil;
-      _firstDataLength = _firstData.length;
-      _index = 0;
-    } else {
-      _index = NSMaxRange(range);
+    
+    // Read data.
+    NSUInteger available = _reader_dataLength - _reader_index;
+    NSRange range = NSMakeRange(_reader_index, MIN(needed, available));
+    [_reader_data getBytes:buffer range:range];
+    _reader_index = NSMaxRange(range);
+    
+    // If we read to the end, try to get another one.
+    if (_reader_index == _reader_dataLength) {
+      _reader_data = nil;
+      _reader_dataLength = 0;
+      
+      pthread_mutex_lock(&_mutex); {
+        [_datas removeObjectAtIndex:0];
+        _dataCount -= 1;
+        _reader_data = _dataCount ? [_datas objectAtIndex:0] : nil;
+      }
+      pthread_mutex_unlock(&_mutex);
+      
+      _reader_dataLength = _reader_data.length;
+      _reader_index = 0;
     }
     needed -= range.length;
     buffer += range.length;
-    
-    // If we ran out of datas, unlock so that the writer can give us more.
-    if (_dataCount == 0) {
-      pthread_mutex_unlock(&_mutex);
-      haveLock = NO;
-    }
-  }
-  
-  if (haveLock) {
-    pthread_mutex_unlock(&_mutex);
-    haveLock = NO;
   }
 }
 
 - (void)writeData:(NSData *)data
 {
   NSData *copy = [data copy];
-  pthread_mutex_lock(&_mutex);
-  _datas[_dataCount] = copy;
-  if (_dataCount == 0) {
-    _firstData = copy;
-    _firstDataLength = copy.length;
-    pthread_cond_signal(&_cond);
+  pthread_mutex_lock(&_mutex); {
+    _datas[_dataCount] = copy;
+    if (_dataCount == 0) {
+      pthread_cond_signal(&_cond);
+    }
+    _dataCount += 1;
   }
-  _dataCount += 1;
   pthread_mutex_unlock(&_mutex);
 }
 
