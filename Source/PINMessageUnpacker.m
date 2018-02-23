@@ -212,46 +212,113 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       ENSURE_CLASS(class, dictionaryClass);
       return [self _decodeDictionaryWithCount:o.as.map_size keyClass:Nil objectClass:Nil];
     case CMP_TYPE_BOOLEAN:
-      ENSURE_CLASS(class, numberClass);
-      return (id)(o.as.boolean ? kCFBooleanTrue : kCFBooleanFalse);
+      if (class == stringClass) {
+        return o.as.boolean ? @"true" : @"false";
+      } else if (class == Nil || class == numberClass) {
+        return (id)(o.as.boolean ? kCFBooleanTrue : kCFBooleanFalse);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_DOUBLE:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &o.as.dbl);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%f"), o.as.dbl);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberDoubleType, &o.as.dbl);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_FLOAT:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &o.as.flt);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%f"), o.as.flt);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &o.as.flt);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_POSITIVE_FIXNUM:
     case CMP_TYPE_NEGATIVE_FIXNUM:
     case CMP_TYPE_SINT8:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt8Type, &o.as.s8);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRId8), o.as.s8);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt8Type, &o.as.s8);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
+      
     case CMP_TYPE_SINT16:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.s16);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRId16), o.as.s16);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.s16);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_SINT32:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.s32);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRId32), o.as.s32);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.s32);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_SINT64:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.s64);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRId64), o.as.s64);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.s64);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_UINT8:
       // NOTE about unsigned types. Since CFNumber doesn't support unsigned values,
       // we mimic NSNumber and store them in the next-largest signed type. U64
       // is handled specially.
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.u8);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu8), o.as.u8);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.u8);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_UINT16:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.u16);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu16), o.as.u16);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.u16);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_UINT32:
-      ENSURE_CLASS(class, numberClass);
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u32);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu32), o.as.u32);
+      } else if (class == Nil || class == numberClass) {
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u32);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     case CMP_TYPE_UINT64:
-      ENSURE_CLASS(class, numberClass);
-      // Yep, NSNumber does this too. Just pass it as signed64 and rely on them to read it in unsigned form.
-      return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u64);
+      if (class == stringClass) {
+        return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu64), o.as.u64);
+      } else if (class == Nil || class == numberClass) {
+        // Yep, NSNumber does this too. Just pass it as signed64 and rely on them to read it in unsigned form.
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u64);
+      } else {
+        [self failWithErrorCode:PINMessagePackErrorInvalidType];
+        return nil;
+      }
     default:
-      NSCAssert(NO, @"Failed to map.");
+      [self failWithErrorCode:PINMessagePackInternalError];
       return nil;
   }
 }
@@ -310,6 +377,9 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 {
   CFTypeRef keys[count];
   CFTypeRef vals[count];
+  if (keyClass == Nil && self.forcesMapKeysToString) {
+    keyClass = [NSString class];
+  }
   for (NSUInteger i = 0; i < count; i++) {
     
     // Read key

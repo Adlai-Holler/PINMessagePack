@@ -25,6 +25,16 @@ __attribute__((objc_subclassing_restricted))
  */
 - (instancetype)initWithBuffer:(PINBuffer *)buffer NS_DESIGNATED_INITIALIZER;
 
+/**
+ * Ensure that all keys in maps are converted to strings.
+ *
+ * In JSON, all map keys are expected to be strings.
+ *
+ * When migrating to MessagePack, you can use this flag to make the
+ * deserialized objects look more like JSON-deserialized objects.
+ */
+@property BOOL forcesMapKeysToString;
+
 #pragma mark - Unavailable
 
 - (instancetype)init NS_UNAVAILABLE;

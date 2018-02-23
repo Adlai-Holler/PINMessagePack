@@ -51,6 +51,23 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   XCTAssertNil(u.error);
 }
 
+- (void)testForcingKeysToString {
+  int32_t key0 = 5;
+  int32_t val0 = 7;
+  char key1[] = "Key1";
+  int32_t val1 = 10;
+  XCTAssertTrue(cmp_write_map(&writeCtx, 2));
+  XCTAssertTrue(cmp_write_s32(&writeCtx, key0));
+  XCTAssertTrue(cmp_write_s32(&writeCtx, val0));
+  XCTAssertTrue(cmp_write_str(&writeCtx, key1, 4));
+  XCTAssertTrue(cmp_write_s32(&writeCtx, val1));
+  
+  u.forcesMapKeysToString = YES;
+  NSDictionary *dict = [u decodeDictionaryWithKeyClass:Nil objectClass:Nil];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(dict, (@{ @(key0).stringValue : @(val0), @(key1) : @(val1) }));
+}
+
 - (void)testATaggedString {
   char wrote[] = "012345678";
   XCTAssertTrue(cmp_write_str(&writeCtx, wrote, 9));

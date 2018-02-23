@@ -87,10 +87,10 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Decodes a dictionary.
  *
- * @param keyClass The class of keys in the dictionary.
+ * @param keyClass The class of keys in the dictionary, or Nil to accept any class.
  * @param objectClass The class of values in the dictionary, or Nil to accept any class.
  */
-- (nullable NSDictionary *)decodeDictionaryWithKeyClass:(Class)keyClass
+- (nullable NSDictionary *)decodeDictionaryWithKeyClass:(nullable Class)keyClass
                                             objectClass:(nullable Class)objectClass NS_RETURNS_RETAINED;
 
 @end
