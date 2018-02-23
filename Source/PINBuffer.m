@@ -39,6 +39,14 @@
   return self;
 }
 
+- (void)dealloc
+{
+  int result = pthread_mutex_destroy(&_mutex);
+  NSCAssert(result == noErr, @"error destroying mutex");
+  result = pthread_cond_destroy(&_cond);
+  NSCAssert(result == noErr, @"error destroying cond");
+}
+
 - (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len
 {
   NSUInteger needed = len;
