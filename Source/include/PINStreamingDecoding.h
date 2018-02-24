@@ -66,7 +66,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * NSNull will not be returned. Nils will be decoded as nil.
  */
-- (nullable id)decodeObjectOfClass:(Class)class NS_RETURNS_RETAINED;
+- (nullable id)decodeObjectOfClass:(nullable Class)class NS_RETURNS_RETAINED;
 
 /**
  * Decodes an array.
@@ -74,7 +74,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param class The class of elements. Heterogenous collections are not supported.
  * WARNING: Nils inside the collection will be decoded as NSNull.
  */
-- (nullable NSArray *)decodeArrayOfClass:(Class)class NS_RETURNS_RETAINED;
+- (nullable NSArray *)decodeArrayOfClass:(nullable Class)class NS_RETURNS_RETAINED;
 
 /**
  * Decodes a set.
@@ -82,7 +82,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param class The class of elements. Heterogenous collections are not supported.
  * WARNING: Nils inside the collection will be decoded as NSNull.
  */
-- (nullable NSSet *)decodeSetOfClass:(Class)class NS_RETURNS_RETAINED;
+- (nullable NSSet *)decodeSetOfClass:(nullable Class)class NS_RETURNS_RETAINED;
 
 /**
  * Decodes a dictionary.

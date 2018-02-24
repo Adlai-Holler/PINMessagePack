@@ -107,7 +107,6 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 
 - (id)decodeObjectOfClass:(Class)class NS_RETURNS_RETAINED
 {
-  NSParameterAssert(class != Nil);
   return [self _decodeObjectOfClass:class allowNull:NO];
 }
 
@@ -149,8 +148,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     case CMP_TYPE_STR32:
     case CMP_TYPE_FIXSTR: {
       ENSURE_CLASS(class, stringClass);
-      uint32_t len = o.as.str_size;
-      uint32_t bufSize = len + 1;
+      const uint32_t len = o.as.str_size;
+      const uint32_t bufSize = len + 1;
       
 #ifdef TAGGED_PTR_STRING_MAX_LEN
       // If it's a short string, skip the heap and stay on the stack
@@ -166,14 +165,13 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
 #endif
       
       char *buf = malloc(bufSize);
-      NSString *result;
       if (!cmp_object_to_str(&_cmpContext, &o, buf, bufSize)) {
         [self failWithErrorCode:NSNotFound];
         free(buf);
         return nil;
       }
       
-      result = [[NSString alloc] initWithBytesNoCopy:buf length:len encoding:NSUTF8StringEncoding freeWhenDone:YES];
+      NSString *result = [[NSString alloc] initWithBytesNoCopy:buf length:len encoding:NSUTF8StringEncoding freeWhenDone:YES];
       if (result == nil) {
         [self failWithErrorCode:PINMessagePackInternalError];
         free(buf);
@@ -186,7 +184,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
     case CMP_TYPE_BIN16:
     case CMP_TYPE_BIN32: {
       ENSURE_CLASS(class, dataClass);
-      uint32_t size = o.as.bin_size;
+      const uint32_t size = o.as.bin_size;
       void *data = malloc(size);
       if (!cmp_object_to_bin(&_cmpContext, &o, data, size)) {
         [self failWithErrorCode:NSNotFound];
