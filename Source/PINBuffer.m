@@ -103,6 +103,29 @@
   return YES;
 }
 
+- (NSData *)readAllData NS_RETURNS_RETAINED
+{
+  NSCAssert(self.state != PINBufferStateNormal, @"Cannot read NSData on open PINBuffer.");
+  NSUInteger bufSize = 0;
+  for (NSData *data in _datas) {
+    bufSize += data.length;
+  }
+  if (bufSize == 0) {
+    return [[NSData alloc] init];
+  }
+  
+  void *buf = malloc(bufSize);
+  __block NSUInteger read = 0;
+  for (NSData *data in _datas) {
+    [data enumerateByteRangesUsingBlock:^(const void * _Nonnull bytes, NSRange byteRange, BOOL * _Nonnull stop) {
+      memcpy(buf + read, bytes, byteRange.length);
+      read += byteRange.length;
+    }];
+  }
+  [_datas removeAllObjects];
+  return [[NSData alloc] initWithBytesNoCopy:buf length:bufSize];
+}
+
 - (void)writeData:(NSData *)data
 {
   NSData *copy = [data copy];

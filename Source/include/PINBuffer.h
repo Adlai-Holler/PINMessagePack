@@ -17,12 +17,13 @@ typedef NS_ENUM(NSInteger, PINBufferState) {
 };
 
 /**
- * An efficient data buffer built on top of dispatch_data.
+ * An efficient data buffer, built specifically to avoid copying
+ * and to support noncontiguous data.
  *
  * Objects behave basically like a bound pair of NSStreams,
  * but are much faster.
  *
- * It is safe to call methods from multiple threads.
+ * All reads must be from the same thread. Writes can be from any thread.
  */
 __attribute__((objc_subclassing_restricted))
 @interface PINBuffer : NSObject
@@ -36,8 +37,19 @@ __attribute__((objc_subclassing_restricted))
  * Reads `len` bytes, blocking if needed.
  *
  * Returns YES if the read succeeded, or NO if the buffer closed before providing the data.
+ *
+ * This method should not be used in conjunction with -readAllData.
  */
 - (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len;
+
+/**
+ * Consume all data in the buffer in one shot.
+ *
+ * This may only be called once, it must
+ * be called after the buffer is closed,
+ * should not be called if -read:length: has been called.
+ */
+- (NSData *)readAllData NS_RETURNS_RETAINED;
 
 /**
  * Writes a chunk of data.

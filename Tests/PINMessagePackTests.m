@@ -153,6 +153,24 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   XCTAssertEqualObjects(dict, (@{ @(key0) : @(val0), @(key1) : @(val1) }));
 }
 
+- (void)testReadingAllData
+{
+  PINBuffer *buf = [[PINBuffer alloc] init];
+  Byte d0[2] = {0x01, 0x02};
+  [buf writeData:[NSData dataWithBytes:d0 length:sizeof(d0)]];
+  Byte d1[2] = {0x04, 0x05};
+  [buf writeData:[NSData dataWithBytes:d1 length:sizeof(d0)]];
+  [buf closeCompleted:YES];
+  
+  Byte allData[4] = {0x01, 0x02, 0x04, 0x05};
+  NSData *expected = [NSData dataWithBytes:allData length:sizeof(allData)];
+  
+  NSData *read = [buf readAllData];
+  XCTAssertEqualObjects(read, expected);
+  // Read again, get nothing. They shouldn't do this but there you have it.
+  XCTAssertEqualObjects([buf readAllData], [NSData data]);
+}
+
 - (void)testARealResponse
 {
   // TODO: Need new reference MsgPack data in SampleDataBase64 – old data captured from server before fix.
