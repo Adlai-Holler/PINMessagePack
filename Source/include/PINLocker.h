@@ -23,7 +23,8 @@ typedef struct {
   pthread_mutex_t *mutex;
 } _PINLockerState;
 
-void _PINLockerStateCleanup(_PINLockerState *statePtr) {
+NS_INLINE void _PINLockerStateCleanup(_PINLockerState *statePtr)
+{
   __unused int result = pthread_mutex_unlock(statePtr->mutex);
   NSCAssert(result == noErr, @"Error unlocking: %s", strerror(result));
 }

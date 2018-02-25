@@ -59,8 +59,8 @@ __attribute__((objc_subclassing_restricted))
  * has been written into the buffer. If not, this returns _at least_
  * all the unread data in the buffer.
  *
- * If `preserveData` is not set, the buffer must be closed before accessing
- * this property. Accessing this property on an open buffer should
+ * If `preserveData` is not set, the buffer must be closed before calling
+ * this method. Calling this method on an open buffer should
  * only be used for debugging.
  *
  * This method should not be used in conjunction with -read:length: except

@@ -165,10 +165,10 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   Byte allData[4] = {0x01, 0x02, 0x04, 0x05};
   NSData *expected = [NSData dataWithBytes:allData length:sizeof(allData)];
   
-  NSData *read = buf.allData;
+  NSData *read = [buf readAllData];;
   XCTAssertEqualObjects(read, expected);
   // Read again, get nothing.
-  XCTAssertEqualObjects(buf.allData, [NSData data]);
+  XCTAssertEqualObjects([buf readAllData], [NSData data]);
 }
 
 - (void)testPreservingAndReadingAllData
@@ -184,8 +184,8 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   Byte allData[4] = {0x01, 0x02, 0x04, 0x05};
   NSData *expected = [NSData dataWithBytes:allData length:sizeof(allData)];
   
-  XCTAssertEqualObjects(buf.allData, expected);
-  XCTAssertEqualObjects(buf.allData, expected);
+  XCTAssertEqualObjects([buf readAllData], expected);
+  XCTAssertEqualObjects([buf readAllData], expected);
 }
 
 - (void)testARealResponse
@@ -285,7 +285,7 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   cmp_init(&ctx, (__bridge void *)buf, NULL, NULL, stream_writer);
   block(&ctx);
   [buf closeCompleted:YES];
-  return buf.allData;
+  return [buf readAllData];
 }
 
 @end
