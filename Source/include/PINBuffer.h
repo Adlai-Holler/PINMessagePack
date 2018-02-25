@@ -34,6 +34,16 @@ __attribute__((objc_subclassing_restricted))
 @property (atomic, readonly) PINBufferState state;
 
 /**
+ * Whether this buffer should preserve all data written to it.
+ *
+ * Since it increases memory consumption, this option should
+ * only be used for debugging.
+ *
+ * Defaults to NO.
+ */
+@property (atomic) BOOL preserveData;
+
+/**
  * Reads `len` bytes, blocking if needed.
  *
  * Returns YES if the read succeeded, or NO if the buffer closed before providing the data.
@@ -43,13 +53,20 @@ __attribute__((objc_subclassing_restricted))
 - (BOOL)read:(uint8_t *)buffer length:(NSUInteger)len;
 
 /**
- * Consume all data in the buffer in one shot.
+ * Retrieve all data in the buffer.
  *
- * This may only be called once, it must
- * be called after the buffer is closed,
- * should not be called if -read:length: has been called.
+ * If `preserveData` is set, this is all the data that
+ * has been written into the buffer. If not, this returns _at least_
+ * all the unread data in the buffer.
+ *
+ * If `preserveData` is not set, the buffer must be closed before accessing
+ * this property. Accessing this property on an open buffer should
+ * only be used for debugging.
+ *
+ * This method should not be used in conjunction with -read:length: except
+ * for debugging.
  */
-- (NSData *)readAllData NS_RETURNS_RETAINED;
+@property (atomic, copy, readonly) NSData *allData;
 
 /**
  * Writes a chunk of data.

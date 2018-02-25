@@ -7,6 +7,8 @@
 //
 
 #import "PINBuffer.h"
+#import "PINLocker.h"
+
 #import <pthread/pthread.h>
 #import <stdatomic.h>
 
@@ -24,7 +26,8 @@
   // Only accessed from the reader thread. The current data.
   __unsafe_unretained NSData *_reader_data;
   NSUInteger _reader_dataLength;
-  NSUInteger _reader_index;
+  NSUInteger _reader_byteIndex;
+  NSUInteger _reader_dataIndex;
   
   // Accessed from both threads – guarded by mutex.
   NSMutableArray<NSData *> *_datas;
@@ -58,44 +61,47 @@
     
     // Get a data if we don't have one.
     if (_reader_data == nil) {
-      pthread_mutex_lock(&_mutex); {
-        // While we're open and have no data, wait.
-        while (_dataCount == 0 && self.state == PINBufferStateNormal) {
-          pthread_cond_wait(&_cond, &_mutex);
-        }
-        
-        // We have data and/or we're closed. Handle each case.
-        if (_dataCount > 0) {
-          _reader_data = [_datas objectAtIndex:0];
-        } else {
-          pthread_mutex_unlock(&_mutex);
-          return NO;
-        }
+      PINLockScope(&_mutex);
+      // While we're open and have no data, wait.
+      while (_dataCount <= _reader_dataIndex && self.state == PINBufferStateNormal) {
+        pthread_cond_wait(&_cond, &_mutex);
       }
-      pthread_mutex_unlock(&_mutex);
+      
+      // We have data and/or we're closed. Handle each case.
+      if (_dataCount > _reader_dataIndex) {
+        _reader_data = [_datas objectAtIndex:_reader_dataIndex];
+      } else {
+        return NO;
+      }
       _reader_dataLength = _reader_data.length;
     }
     
     // Read data.
-    NSUInteger available = _reader_dataLength - _reader_index;
-    NSRange range = NSMakeRange(_reader_index, MIN(needed, available));
+    NSUInteger available = _reader_dataLength - _reader_byteIndex;
+    NSRange range = NSMakeRange(_reader_byteIndex, MIN(needed, available));
     [_reader_data getBytes:buffer range:range];
-    _reader_index = NSMaxRange(range);
+    _reader_byteIndex = NSMaxRange(range);
     
     // If we read to the end, try to get another one.
-    if (_reader_index == _reader_dataLength) {
+    if (_reader_byteIndex == _reader_dataLength) {
       _reader_data = nil;
       _reader_dataLength = 0;
       
-      pthread_mutex_lock(&_mutex); {
-        [_datas removeObjectAtIndex:0];
-        _dataCount -= 1;
-        _reader_data = _dataCount ? [_datas objectAtIndex:0] : nil;
+      {
+        PINLockScope(&_mutex);
+        if (!self.preserveData) {
+          // If not preserving, throw out current data but don't advance data index.
+          [_datas removeObjectAtIndex:_reader_dataIndex];
+          _dataCount -= 1;
+        } else {
+          // If preserving, keep data array intact and advance index instead.
+          _reader_dataIndex += 1;
+        }
+        _reader_data = _dataCount > _reader_dataIndex ? [_datas objectAtIndex:_reader_dataIndex] : nil;
       }
-      pthread_mutex_unlock(&_mutex);
       
       _reader_dataLength = _reader_data.length;
-      _reader_index = 0;
+      _reader_byteIndex = 0;
     }
     needed -= range.length;
     buffer += range.length;
@@ -103,9 +109,10 @@
   return YES;
 }
 
-- (NSData *)readAllData NS_RETURNS_RETAINED
+- (NSData *)allData
 {
-  NSCAssert(self.state != PINBufferStateNormal, @"Cannot read NSData on open PINBuffer.");
+  NSCAssert(self.preserveData || self.state != PINBufferStateNormal, @"Attempt to read all data from an open, non-preserving buffer. This is a recipe for errors.");
+  PINLockScope(&_mutex);
   NSUInteger bufSize = 0;
   for (NSData *data in _datas) {
     bufSize += data.length;
@@ -122,31 +129,30 @@
       read += byteRange.length;
     }];
   }
-  [_datas removeAllObjects];
+  if (!self.preserveData) {
+    [_datas removeAllObjects];
+  }
   return [[NSData alloc] initWithBytesNoCopy:buf length:bufSize];
 }
 
 - (void)writeData:(NSData *)data
 {
   NSData *copy = [data copy];
-  pthread_mutex_lock(&_mutex); {
-    NSCAssert(self.state == PINBufferStateNormal, @"Writing after closing PINBuffer.");
-    _datas[_dataCount] = copy;
-    if (_dataCount == 0) {
-      pthread_cond_signal(&_cond);
-    }
-    _dataCount += 1;
+  PINLockScope(&_mutex);
+  NSCAssert(self.state == PINBufferStateNormal, @"Writing after closing PINBuffer.");
+  _datas[_dataCount] = copy;
+  if (_dataCount == 0) {
+    pthread_cond_signal(&_cond);
   }
-  pthread_mutex_unlock(&_mutex);
+  _dataCount += 1;
 }
 
 - (void)closeCompleted:(BOOL)completed
 {
   NSCAssert(self.state == PINBufferStateNormal, @"Cannot close already-closed buffer.");
-  pthread_mutex_lock(&_mutex);
+  PINLockScope(&_mutex);
   atomic_store(&_state, completed ? PINBufferStateCompleted : PINBufferStateError);
   pthread_cond_signal(&_cond);
-  pthread_mutex_unlock(&_mutex);
 }
 
 - (PINBufferState)state

@@ -165,10 +165,27 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   Byte allData[4] = {0x01, 0x02, 0x04, 0x05};
   NSData *expected = [NSData dataWithBytes:allData length:sizeof(allData)];
   
-  NSData *read = [buf readAllData];
+  NSData *read = buf.allData;
   XCTAssertEqualObjects(read, expected);
-  // Read again, get nothing. They shouldn't do this but there you have it.
-  XCTAssertEqualObjects([buf readAllData], [NSData data]);
+  // Read again, get nothing.
+  XCTAssertEqualObjects(buf.allData, [NSData data]);
+}
+
+- (void)testPreservingAndReadingAllData
+{
+  PINBuffer *buf = [[PINBuffer alloc] init];
+  buf.preserveData = YES;
+  Byte d0[2] = {0x01, 0x02};
+  [buf writeData:[NSData dataWithBytes:d0 length:sizeof(d0)]];
+  Byte d1[2] = {0x04, 0x05};
+  [buf writeData:[NSData dataWithBytes:d1 length:sizeof(d0)]];
+  [buf closeCompleted:YES];
+  
+  Byte allData[4] = {0x01, 0x02, 0x04, 0x05};
+  NSData *expected = [NSData dataWithBytes:allData length:sizeof(allData)];
+  
+  XCTAssertEqualObjects(buf.allData, expected);
+  XCTAssertEqualObjects(buf.allData, expected);
 }
 
 - (void)testARealResponse
@@ -191,6 +208,84 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 //  PINMessageUnpacker *u = [[PINMessageUnpacker alloc] initWithInputStream:s];
 //  id obj = [u decodeDictionaryWithKeyClass:[NSString class] objectClass:Nil];
 //  XCTAssertEqualObjects(obj, refObject);
+}
+
+- (NSData *)performanceMessagePackData NS_RETURNS_RETAINED
+{
+  static NSData *msgPackData;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    @autoreleasepool {
+      NSString *path = [[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil];
+      NSString *base64Str = [[NSString alloc] initWithContentsOfFile:path encoding:NSUTF8StringEncoding error:NULL];
+      base64Str = [base64Str stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+      msgPackData = [[NSData alloc] initWithBase64EncodedString:base64Str options:kNilOptions];
+    }
+  });
+  return msgPackData;
+}
+
+// TODO: Bigger object.
+- (id)performanceDataObject NS_RETURNS_RETAINED
+{
+  static id obj;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    @autoreleasepool {
+      PINBuffer *buf = [[PINBuffer alloc] init];
+      [buf writeData:[self performanceMessagePackData]];
+      [buf closeCompleted:YES];
+      
+      obj = [[[PINMessageUnpacker alloc] initWithBuffer:buf] decodeObjectOfClass:Nil];
+    }
+  });
+  return obj;
+}
+
+- (void)testJSONPerformance
+{
+  id obj = [self performanceDataObject];
+  NSData *jsonData = [NSJSONSerialization dataWithJSONObject:obj options:kNilOptions error:NULL];
+  
+  [self measureBlock:^{
+    @autoreleasepool {
+      dispatch_apply(4, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t i) {
+        @autoreleasepool {
+          [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:NULL];
+        }
+      });
+    }
+  }];
+  
+}
+
+- (void)testMessagePackPerformance
+{
+  NSData *msgPackData = [self performanceMessagePackData];
+  
+  [self measureBlock:^{
+    @autoreleasepool {
+      dispatch_apply(4, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t i) {
+        @autoreleasepool {
+          PINBuffer *buf = [[PINBuffer alloc] init];
+          [buf writeData:msgPackData];
+          [buf closeCompleted:YES];
+          
+          [[[PINMessageUnpacker alloc] initWithBuffer:buf] decodeObjectOfClass:Nil];
+        }
+      });
+    }
+  }];
+}
+
+- (NSData *)messagePackDataWithBlock:(void(^)(cmp_ctx_t *ctx))block
+{
+  PINBuffer *buf = [[PINBuffer alloc] init];
+  cmp_ctx_t ctx;
+  cmp_init(&ctx, (__bridge void *)buf, NULL, NULL, stream_writer);
+  block(&ctx);
+  [buf closeCompleted:YES];
+  return buf.allData;
 }
 
 @end

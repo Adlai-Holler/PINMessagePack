@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CC893C13203B538F00ED7FC1 /* MessagePackRefObject.plist in Resources */ = {isa = PBXBuildFile; fileRef = CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */; };
+		CC657AF020433CCB002B5136 /* PINLocker.h in Headers */ = {isa = PBXBuildFile; fileRef = CC657AEE20433CCB002B5136 /* PINLocker.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CC893C1D203CBDB400ED7FC1 /* PINStreamingDecoding.h in Headers */ = {isa = PBXBuildFile; fileRef = CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CC9C1C7C203F715F005005E8 /* PINBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = CC9C1C7A203F715F005005E8 /* PINBuffer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		CC9C1C7D203F715F005005E8 /* PINBuffer.m in Sources */ = {isa = PBXBuildFile; fileRef = CC9C1C7B203F715F005005E8 /* PINBuffer.m */; };
@@ -37,6 +38,7 @@
 
 /* Begin PBXFileReference section */
 		CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */ = {isa = PBXFileReference; lastKnownFileType = file.bplist; path = MessagePackRefObject.plist; sourceTree = "<group>"; };
+		CC657AEE20433CCB002B5136 /* PINLocker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINLocker.h; sourceTree = "<group>"; };
 		CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINStreamingDecoding.h; sourceTree = "<group>"; };
 		CC9C1C7A203F715F005005E8 /* PINBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PINBuffer.h; sourceTree = "<group>"; };
 		CC9C1C7B203F715F005005E8 /* PINBuffer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PINBuffer.m; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				CC9C1C7A203F715F005005E8 /* PINBuffer.h */,
+				CC657AEE20433CCB002B5136 /* PINLocker.h */,
 				CC893C1C203CBDB400ED7FC1 /* PINStreamingDecoding.h */,
 				CCCDB23E2039F1D20097C6A3 /* PINCollections.h */,
 				CCFD19C9203771EA008F2EA1 /* PINMessagePack.h */,
@@ -125,7 +128,6 @@
 			isa = PBXGroup;
 			children = (
 				CCFD19D4203771EA008F2EA1 /* PINMessagePackTests.m */,
-				CC893C11203B52F500ED7FC1 /* MessagePackRefObject.plist */,
 				CCCDB242203A5CD90097C6A3 /* SampleDataBase64 */,
 				CCFD19D6203771EA008F2EA1 /* Info.plist */,
 			);
@@ -247,7 +249,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CC893C13203B538F00ED7FC1 /* MessagePackRefObject.plist in Resources */,
 				CCCDB243203A5D480097C6A3 /* SampleDataBase64 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
