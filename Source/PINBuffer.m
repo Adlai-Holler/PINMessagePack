@@ -109,7 +109,7 @@
   return YES;
 }
 
-- (NSData *)allData
+- (NSData *)readAllData NS_RETURNS_RETAINED
 {
   NSCAssert(self.preserveData || self.state != PINBufferStateNormal, @"Attempt to read all data from an open, non-preserving buffer. This is a recipe for errors.");
   PINLockScope(&_mutex);

@@ -55,7 +55,7 @@ __attribute__((objc_subclassing_restricted))
 /**
  * Retrieve all data in the buffer.
  *
- * If `preserveData` is set, this is all the data that
+ * If `preserveData` is set, this returns all the data that
  * has been written into the buffer. If not, this returns _at least_
  * all the unread data in the buffer.
  *
@@ -64,9 +64,9 @@ __attribute__((objc_subclassing_restricted))
  * only be used for debugging.
  *
  * This method should not be used in conjunction with -read:length: except
- * for debugging.
+ * for debugging using the `preserveContents` flag.
  */
-@property (atomic, copy, readonly) NSData *allData;
+- (NSData *)readAllData NS_RETURNS_RETAINED;
 
 /**
  * Writes a chunk of data.
