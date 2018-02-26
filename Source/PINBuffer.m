@@ -74,6 +74,7 @@
         return NO;
       }
       _reader_dataLength = _reader_data.length;
+      _reader_byteIndex = 0;
     }
     
     // Read data.
@@ -82,26 +83,18 @@
     [_reader_data getBytes:buffer range:range];
     _reader_byteIndex = NSMaxRange(range);
     
-    // If we read to the end, try to get another one.
+    // If we read to the end, discard this one.
     if (_reader_byteIndex == _reader_dataLength) {
       _reader_data = nil;
       _reader_dataLength = 0;
-      
-      {
-        PINLockScope(&_mutex);
-        if (!self.preserveData) {
-          // If not preserving, throw out current data but don't advance data index.
-          [_datas removeObjectAtIndex:_reader_dataIndex];
-          _dataCount -= 1;
-        } else {
-          // If preserving, keep data array intact and advance index instead.
-          _reader_dataIndex += 1;
-        }
-        _reader_data = _dataCount > _reader_dataIndex ? [_datas objectAtIndex:_reader_dataIndex] : nil;
-      }
-      
-      _reader_dataLength = _reader_data.length;
       _reader_byteIndex = 0;
+      if (self.preserveData) {
+        _reader_dataIndex += 1;
+      } else {
+        PINLockScope(&_mutex);
+        _dataCount -= 1;
+        [_datas removeObjectAtIndex:_reader_dataIndex];
+      }
     }
     needed -= range.length;
     buffer += range.length;

@@ -190,24 +190,37 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 
 - (void)testARealResponse
 {
-  // TODO: Need new reference MsgPack data in SampleDataBase64 – old data captured from server before fix.
-  return;
-  
   // Read the ref object from the plist in our bundle.
-//  NSString *refPath = [[NSBundle bundleForClass:self.class] pathForResource:@"MessagePackRefObject" ofType:@"plist"];
-//  id refObject = [NSKeyedUnarchiver unarchiveObjectWithFile:refPath];
-//  XCTAssertNotNil(refObject);
-//  
-//  NSString *base64String = [NSString stringWithContentsOfFile:[[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil] encoding:NSUTF8StringEncoding error:NULL];
-//  // Strip off trailing newline.
-//  base64String = [base64String stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-//  NSData *d = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
-//  XCTAssertGreaterThan(d.length, 0);
-//  
-//  NSInputStream *s = [NSInputStream inputStreamWithData:d];
-//  PINMessageUnpacker *u = [[PINMessageUnpacker alloc] initWithInputStream:s];
-//  id obj = [u decodeDictionaryWithKeyClass:[NSString class] objectClass:Nil];
-//  XCTAssertEqualObjects(obj, refObject);
+  NSString *refPath = [[NSBundle bundleForClass:self.class] pathForResource:@"MessagePackRefObject" ofType:@"plist"];
+  id refObject = [NSKeyedUnarchiver unarchiveObjectWithFile:refPath];
+  XCTAssertNotNil(refObject);
+  
+  NSString *base64String = [NSString stringWithContentsOfFile:[[NSBundle bundleForClass:self.class] pathForResource:@"SampleDataBase64" ofType:nil] encoding:NSUTF8StringEncoding error:NULL];
+  // IgnoreUnknownCharacters because Xcode inserts a newline into our file.
+  NSData *d = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
+  XCTAssertGreaterThan(d.length, 0);
+  
+  PINBuffer *buffer = [[PINBuffer alloc] init];
+  buffer.preserveData = YES;
+  
+  // Break the data up into chunks, to simulate streaming.
+  NSUInteger chunkLengths[] = { 5518, 756, 4096, 5, 2055 };
+  NSUInteger byteIndex = 0;
+  for (NSUInteger i = 0; i < sizeof(chunkLengths) / sizeof(NSUInteger); i++) {
+    NSUInteger len = chunkLengths[i];
+    NSRange range = NSMakeRange(byteIndex, len);
+    [buffer writeData:[d subdataWithRange:range]];
+    byteIndex += len;
+  }
+  // Dump the rest of the data in.
+  NSRange lastRange = NSMakeRange(byteIndex, d.length - byteIndex);
+  [buffer writeData:[d subdataWithRange:lastRange]];
+  [buffer closeCompleted:YES];
+  
+  PINMessageUnpacker *u = [[PINMessageUnpacker alloc] initWithBuffer:buffer];
+  id obj = [u decodeObjectOfClass:Nil];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, refObject);
 }
 
 - (NSData *)performanceMessagePackData NS_RETURNS_RETAINED
