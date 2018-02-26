@@ -7,38 +7,15 @@
 //
 
 #import "PINCollections.h"
-#import <pthread/pthread.h>
 
-typedef NS_ENUM(NSInteger, PINFlagOperation) {
-  PINFlagRead,
-  PINFlagSet,
-  PINFlagClear
-};
-
-static __attribute__((__noinline__)) BOOL PINSkipRetainFlag(PINFlagOperation op)
-{
-  static pthread_key_t k;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    pthread_key_create(&k, NULL);
-  });
-  
-  switch (op) {
-    case PINFlagSet:
-      NSCAssert(!PINSkipRetainFlag(PINFlagRead), @"Redundant flag set.");
-      pthread_setspecific(k, kCFBooleanTrue);
-      return YES;
-    case PINFlagRead:
-      return (pthread_getspecific(k) == kCFBooleanTrue);
-    case PINFlagClear:
-      pthread_setspecific(k, NULL);
-      return YES;
-  }
-}
+// Thread-local flag that tells our custom callbacks to skip the initial retain.
+// If user explicitly calls CFArrayCreateCopy then CF will make a real copy,
+// and at that time we need to do a real retain (no flag).
+static _Thread_local BOOL tls_skipRetain;
 
 static const void *PINRetainCallback(CFAllocatorRef allocator, const void *value)
 {
-  if (PINSkipRetainFlag(PINFlagRead)) {
+  if (tls_skipRetain) {
     return value;
   } else {
     return (&kCFTypeArrayCallBacks)->retain(allocator, value);
@@ -47,7 +24,7 @@ static const void *PINRetainCallback(CFAllocatorRef allocator, const void *value
 
 static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
 {
-  if (PINSkipRetainFlag(PINFlagRead)) {
+  if (tls_skipRetain) {
     return value;
   } else {
     return (&kCFTypeDictionaryKeyCallBacks)->retain(allocator, value);
@@ -73,9 +50,9 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
     cb = kCFTypeArrayCallBacks;
     cb.retain = PINRetainCallback;
   });
-  PINSkipRetainFlag(PINFlagSet);
+  tls_skipRetain = YES;
   CFArrayRef result = CFArrayCreate(kCFAllocatorDefault, objects, count, &cb);
-  PINSkipRetainFlag(PINFlagClear);
+  tls_skipRetain = NO;
   return (__bridge_transfer NSArray *)result;
 }
 
@@ -104,9 +81,9 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
     vCb.retain = PINRetainCallback;
   });
   
-  PINSkipRetainFlag(PINFlagSet);
+  tls_skipRetain = YES;
   CFDictionaryRef result = CFDictionaryCreate(kCFAllocatorDefault, keys, objects, count, &kCb, &vCb);
-  PINSkipRetainFlag(PINFlagClear);
+  tls_skipRetain = NO;
   return (__bridge_transfer NSDictionary *)result;
 }
 
@@ -130,9 +107,9 @@ static const void *PINCopyCallback(CFAllocatorRef allocator, const void *value)
     cb = kCFTypeSetCallBacks;
     cb.retain = PINRetainCallback;
   });
-  PINSkipRetainFlag(PINFlagSet);
+  tls_skipRetain = YES;
   CFSetRef result = CFSetCreate(kCFAllocatorDefault, objects, count, &cb);
-  PINSkipRetainFlag(PINFlagClear);
+  tls_skipRetain = NO;
   return (__bridge_transfer NSSet *)result;
 }
 
