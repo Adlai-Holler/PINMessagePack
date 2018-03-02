@@ -160,7 +160,7 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
           [self failWithErrorCode:NSNotFound];
           return nil;
         }
-        return [[NSString alloc] initWithBytes:buf length:len encoding:NSUTF8StringEncoding];
+        return (__bridge_transfer NSString *)CFStringCreateWithBytes(NULL, (UInt8 *)buf, len, kCFStringEncodingUTF8, false);
       }
 #endif
       
@@ -171,14 +171,14 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
         return nil;
       }
       
-      NSString *result = [[NSString alloc] initWithBytesNoCopy:buf length:len encoding:NSUTF8StringEncoding freeWhenDone:YES];
-      if (result == nil) {
+      CFStringRef cfStr = CFStringCreateWithBytesNoCopy(NULL, (UInt8 *)buf, len, kCFStringEncodingUTF8, false, kCFAllocatorMalloc);
+      if (cfStr == NULL) {
         [self failWithErrorCode:PINMessagePackInternalError];
         free(buf);
         return nil;
       }
       
-      return result;
+      return (__bridge_transfer NSString *)cfStr;
     }
     case CMP_TYPE_BIN8:
     case CMP_TYPE_BIN16:
