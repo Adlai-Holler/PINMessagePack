@@ -282,7 +282,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       if (class == stringClass) {
         return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu8), o.as.u8);
       } else if (class == Nil || class == numberClass) {
-        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &o.as.u8);
+        SInt16 val = (SInt16)o.as.u8;
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt16Type, &val);
       } else {
         [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return nil;
@@ -291,7 +292,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       if (class == stringClass) {
         return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu16), o.as.u16);
       } else if (class == Nil || class == numberClass) {
-        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &o.as.u16);
+        SInt32 val = (SInt32)o.as.u16;
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &val);
       } else {
         [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return nil;
@@ -300,7 +302,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       if (class == stringClass) {
         return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu32), o.as.u32);
       } else if (class == Nil || class == numberClass) {
-        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u32);
+        SInt64 val = (SInt64)o.as.u32;
+        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &val);
       } else {
         [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return nil;
@@ -309,8 +312,8 @@ static bool stream_reader(cmp_ctx_t *ctx, void *data, size_t limit) {
       if (class == stringClass) {
         return (__bridge_transfer NSString *)CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR("%"PRIu64), o.as.u64);
       } else if (class == Nil || class == numberClass) {
-        // Yep, NSNumber does this too. Just pass it as signed64 and rely on them to read it in unsigned form.
-        return (__bridge_transfer NSNumber *)CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &o.as.u64);
+        // NSNumber uses the private kCFNumberSInt128Type (17).
+        return [[NSNumber alloc] initWithUnsignedLongLong:o.as.u64];
       } else {
         [self failWithErrorCode:PINMessagePackErrorInvalidType];
         return nil;
