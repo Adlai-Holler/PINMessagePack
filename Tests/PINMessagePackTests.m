@@ -291,6 +291,66 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   }];
 }
 
+- (void)testThatItReadsLargeS8sCorrectly
+{
+  SInt8 val = INT8_MAX;
+  XCTAssertTrue(cmp_write_s8(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeS16sCorrectly
+{
+  SInt16 val = INT16_MAX;
+  XCTAssertTrue(cmp_write_s16(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeS32sCorrectly
+{
+  SInt32 val = INT32_MAX;
+  XCTAssertTrue(cmp_write_s32(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeS64sCorrectly
+{
+  SInt64 val = INT64_MAX;
+  XCTAssertTrue(cmp_write_s64(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeU8sCorrectly
+{
+  UInt8 val = UINT8_MAX;
+  XCTAssertTrue(cmp_write_u8(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeU16sCorrectly
+{
+  UInt16 val = UINT16_MAX;
+  XCTAssertTrue(cmp_write_u16(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
 - (void)testThatItReadsLargeU32sCorrectly
 {
   UInt32 val = UINT32_MAX;
