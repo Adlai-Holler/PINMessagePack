@@ -291,6 +291,26 @@ static size_t stream_writer(cmp_ctx_t *ctx, const void *data, size_t count)
   }];
 }
 
+- (void)testThatItReadsLargeU32sCorrectly
+{
+  UInt32 val = UINT32_MAX;
+  XCTAssertTrue(cmp_write_u32(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
+- (void)testThatItReadsLargeU64sCorrectly
+{
+  UInt64 val = UINT64_MAX;
+  XCTAssertTrue(cmp_write_u64(&writeCtx, val));
+  
+  id obj = [u decodeObjectOfClass:NSNumber.class];
+  XCTAssertNil(u.error);
+  XCTAssertEqualObjects(obj, @(val));
+}
+
 - (NSData *)messagePackDataWithBlock:(void(^)(cmp_ctx_t *ctx))block
 {
   PINBuffer *buf = [[PINBuffer alloc] init];
