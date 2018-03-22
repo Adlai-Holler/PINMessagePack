@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "PINMessagePack"
-  s.version          = "0.2.0"
+  s.version          = "1.1.0"
   s.summary          = "A fast, streaming Objective-C MessagePack decoder"
   s.homepage         = "https://github.com/Adlai-Holler/PINMessagePack"
   s.author           = { "Adlai Holler" => "adlai@pinterest.com" }
@@ -14,6 +14,6 @@ Pod::Spec.new do |s|
 
   s.source_files =         'Source/**/*.{h,m}'
   s.public_header_files =  'Source/include/*.h'
-  s.private_header_files = 'Source/cmp/*.h'
+  s.private_header_files = 'Source/cmp/*.h', 'Source/internal/*.h'
   
 end
