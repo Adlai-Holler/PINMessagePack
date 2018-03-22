@@ -7,7 +7,7 @@
 //
 
 #import "PINBuffer.h"
-#import "PINLocker.h"
+#import "PINMutexScope.h"
 
 #import <pthread/pthread.h>
 #import <stdatomic.h>
@@ -61,7 +61,7 @@
     
     // Get a data if we don't have one.
     if (_reader_data == nil) {
-      PINLockScope(&_mutex);
+      PINMutexScope(&_mutex);
       // While we're open and have no data, wait.
       while (_dataCount <= _reader_dataIndex && self.state == PINBufferStateNormal) {
         pthread_cond_wait(&_cond, &_mutex);
@@ -91,7 +91,7 @@
       if (self.preserveData) {
         _reader_dataIndex += 1;
       } else {
-        PINLockScope(&_mutex);
+        PINMutexScope(&_mutex);
         _dataCount -= 1;
         [_datas removeObjectAtIndex:_reader_dataIndex];
       }
@@ -105,7 +105,7 @@
 - (NSData *)readAllData NS_RETURNS_RETAINED
 {
   NSCAssert(self.preserveData || self.state != PINBufferStateNormal, @"Attempt to read all data from an open, non-preserving buffer. This is a recipe for errors.");
-  PINLockScope(&_mutex);
+  PINMutexScope(&_mutex);
   NSUInteger bufSize = 0;
   for (NSData *data in _datas) {
     bufSize += data.length;
@@ -131,7 +131,7 @@
 - (void)writeData:(NSData *)data
 {
   NSData *copy = [data copy];
-  PINLockScope(&_mutex);
+  PINMutexScope(&_mutex);
   NSCAssert(self.state == PINBufferStateNormal, @"Writing after closing PINBuffer.");
   _datas[_dataCount] = copy;
   if (_dataCount == 0) {
@@ -143,7 +143,7 @@
 - (void)closeCompleted:(BOOL)completed
 {
   NSCAssert(self.state == PINBufferStateNormal, @"Cannot close already-closed buffer.");
-  PINLockScope(&_mutex);
+  PINMutexScope(&_mutex);
   atomic_store(&_state, completed ? PINBufferStateCompleted : PINBufferStateError);
   pthread_cond_signal(&_cond);
 }
